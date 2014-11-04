@@ -666,7 +666,7 @@ _libcudnn.cudnnSetConvolutionDescriptor.restype = int
 _libcudnn.cudnnSetConvolutionDescriptor.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
                                                     ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
                                                     ctypes.c_int]
-def cudnnSetConvolutionDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h, pad_w, u, v, upscalex, uscaley, mode):
+def cudnnSetConvolutionDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h, pad_w, u, v, upscalex, upscaley, mode):
     """"
     Initialize a convolution descriptor.
     
@@ -703,7 +703,7 @@ def cudnnSetConvolutionDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h, 
     """
     
     status = _libcudnn.cudnnSetConvolutionDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h,
-                                                     pad_w, u, v, upscalex, uscaley, mode)
+                                                     pad_w, u, v, upscalex, upscaley, mode)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnSetConvolutionDescriptorEx.restype = int
@@ -819,7 +819,8 @@ _libcudnn.cudnnConvolutionForward.restype = int
 _libcudnn.cudnnConvolutionForward.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p,
                                               ctypes.c_int, ctypes.c_void_p, ctypes.c_int,
                                               ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData, convDesc, destDesc, destData, accumulate ):
+def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
+                            convDesc, destDesc, destData, accumulate ):
     """"
     Perform forward convolution.
 
@@ -854,7 +855,8 @@ def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData, co
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnConvolutionBackwardBias.restype = int
-_libcudnn.cudnnConvolutionBackwardBias.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
+_libcudnn.cudnnConvolutionBackwardBias.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p,
+                                                   ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
 def cudnnConvolutionBackwardBias(handle, srcDesc, srcData, destDesc, destData, accumulate):
     """"
     Compute the gradient wrt the bias.
@@ -890,7 +892,8 @@ _libcudnn.cudnnConvolutionBackwardFilter.restype = int
 _libcudnn.cudnnConvolutionBackwardFilter.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p,
                                                      ctypes.c_int, ctypes.c_void_p, ctypes.c_int,
                                                      ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc, diffData, convDesc, gradDesc, gradData, accumulate):
+def cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc, diffData,
+                                   convDesc, gradDesc, gradData, accumulate):
     """"
     Compute the gradient wrt the filter coefficients.
     
@@ -931,7 +934,8 @@ _libcudnn.cudnnConvolutionBackwardData.argtypes = [ctypes.c_int, ctypes.c_int,
                                                    ctypes.c_void_p, ctypes.c_int,
                                                    ctypes.c_void_p, ctypes.c_int,
                                                    ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionBackwardData(handle, filterDesc, filterData, diffDesc, diffData, convDesc, gradDesc, gradData, accumulate):
+def cudnnConvolutionBackwardData(handle, filterDesc, filterData, diffDesc, diffData, convDesc,
+                                 gradDesc, gradData, accumulate):
     """"
     Compute the gradients wrt the data.
     
@@ -1074,11 +1078,13 @@ def cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight, windowWidth, vert
         Pooling horizontal stride.
     """
     
-    status = _libcudnn.cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight, windowWidth, verticalStride, horizontalStride)
+    status = _libcudnn.cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight,
+                                                 windowWidth, verticalStride, horizontalStride)
     cudnnCheckStatus(status)
  
 _libcudnn.cudnnGetPoolingDescriptor.restype = int
-_libcudnn.cudnnGetPoolingDescriptor.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+_libcudnn.cudnnGetPoolingDescriptor.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
 def cudnnGetPoolingDescriptor(poolingDesc):
     """"
     This function queries a previously created pooling descriptor object.
@@ -1237,8 +1243,11 @@ def cudnnActivationForward(handle, mode, srcDesc, srcData, destDesc, destData):
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnActivationBackward.restype = int
-_libcudnn.cudnnActivationBackward.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
-def cudnnActivationBackward(handle, mode, srcDesc, srcData, srcDiffDesc, srcDiffData, destDesc, destData, destDiffDesc, destDiffData):
+_libcudnn.cudnnActivationBackward.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_void_p,
+                                              ctypes.c_int, ctypes.c_void_p, ctypes.c_int,
+                                              ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+def cudnnActivationBackward(handle, mode, srcDesc, srcData, srcDiffDesc, srcDiffData,
+                            destDesc, destData, destDiffDesc, destDiffData):
     """"
     Gradient of activation function.
     
