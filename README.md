@@ -24,7 +24,7 @@ perform forward convolution on a PyCUDA ``GPUArray``:
 ```python
 import pycuda.autoinit
 from pycuda import gpuarray
-from cudnn-python-wrappers import libcudnn
+import libcudnn, ctypes
 import numpy as np
 
 # Create a cuDNN context
@@ -48,34 +48,37 @@ pad_h = 4
 pad_w = 4
 vertical_stride = 1
 horizontal_stride = 1
+upscalex = 1
+upscaley = 1
 
 # Input tensor
-X = gpuarray.to_gpu(np.random.rand(n_input, filters_int, height_in, width_in)
+X = gpuarray.to_gpu(np.random.rand(n_input, filters_in, height_in, width_in)
     .astype(np.float32))
-    
+
 # Filter tensor
 filters = gpuarray.to_gpu(np.random.rand(filters_out,
     filters_in, height_filter, width_filter).astype(np.float32))
 
 #Descriptor for input
 X_desc = libcudnn.cudnnCreateTensor4dDescriptor()
-libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type, 
+libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type,
     n_input, filters_in, height_filter, width_filter)
-    
+
 # Filter descriptor
 filters_desc = libcudnn.cudnnCreateFilterDescriptor()
-libcudnn.cudnnSetFilterDescriptor(filters_desc, data_type, filters_out, 
+libcudnn.cudnnSetFilterDescriptor(filters_desc, data_type, filters_out,
     filters_in, height_filter, width_filter)
-    
+
 # Convolution descriptor
 conv_desc = libcudnn.cudnnCreateConvolutionDescriptor()
-libcudnn.cudnnSetConvolutionDescriptor(conv_desc, X_desc, filter_desc, 
-    pad_h, pad_w, vertical_stride, horizontal_stride, convolution_mode)
+libcudnn.cudnnSetConvolutionDescriptor(conv_desc, X_desc, filters_desc,
+    pad_h, pad_w, vertical_stride, horizontal_stride, upscalex, upscaley,
+    convolution_mode)
 
 # Get output dimensions (first two values are n_input and filters_out)
 _, _, height_output, width_output = libcudnn.cudnnGetOutputTensor4dDim(
     conv_desc, convolution_path)
-    
+
 # Output tensor
 Y = gpuarray.empty((n_input, filters_out, height_output, width_output), np.float32)
 Y_desc = libcudnn.cudnnCreateTensor4dDescriptor()
