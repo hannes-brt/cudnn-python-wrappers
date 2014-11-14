@@ -21,7 +21,7 @@ Users need to make sure that they pass all arguments as the correct data type, t
 handles and array pointers and ``ctypes.c_int`` for all integer arguments and enums. Here is an example on how to
 perform forward convolution on a PyCUDA ``GPUArray``:
 
-```
+```python
 import pycuda.autoinit
 from pycuda import gpuarray
 from cudnn-python-wrappers import libcudnn
@@ -47,21 +47,23 @@ pad_w = 4
 vertical_stride = 1
 horizontal_stride = 1
 
-X = gpuarray.to_gpu(np.random.rand(n_input, filters_int, height_in, width_in).astype(np.float32))
+X = gpuarray.to_gpu(np.random.rand(n_input, filters_int, height_in, width_in)
+    .astype(np.float32))
 filters = gpuarray.to_gpu(np.random.rand(filters_out,
     filters_in, height_filter, width_filter).astype(np.float32))
 
 X_desc = libcudnn.cudnnCreateTensor4dDescriptor()
-libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type, n_input,
-    filters_in, height_filter, width_filter)
+libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type, 
+    n_input, filters_in, height_filter, width_filter)
 filters_desc = libcudnn.cudnnCreateFilterDescriptor()
-libcudnn.cudnnSetFilterDescriptor(filters_desc, data_type, filters_out, filters_in,
-    height_filter, width_filter)
+libcudnn.cudnnSetFilterDescriptor(filters_desc, data_type, filters_out, 
+    filters_in, height_filter, width_filter)
 conv_desc = libcudnn.cudnnCreateConvolutionDescriptor()
-libcudnn.cudnnSetConvolutionDescriptor(conv_desc, X_desc, filter_desc, pad_h, pad_w,
-    vertical_stride, horizontal_stride, convolution_mode)
+libcudnn.cudnnSetConvolutionDescriptor(conv_desc, X_desc, filter_desc, 
+    pad_h, pad_w, vertical_stride, horizontal_stride, convolution_mode)
 
-_, _, height_output, width_output = libcudnn.cudnnGetOutputTensor4dDim(conv_desc, convolution_path)
+_, _, height_output, width_output = libcudnn.cudnnGetOutputTensor4dDim(
+    conv_desc, convolution_path)
 Y = gpuarray.empty((n_input, filters_out, height_output, width_output), np.float32)
 Y_desc = libcudnn.cudnnCreateTensor4dDescriptor()
 libcudnn.cudnnSetTensor4dDescriptor(Y_desc, tensor_format, data_type, n_input,
