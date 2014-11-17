@@ -17,7 +17,6 @@ setup(
     author = 'Hannes Bretschneider',
     author_email = 'habretschneider@gmail.com',
     url = 'https://github.com/hannes-brt/cudnn-python-wrappers',
-    download_url = 'https://github.com/peterldowns/mypackage/tarball/0.1', # I'll explain this in a second
     keywords = ['cuda', 'nvidia', 'cudnn', 'convolutional neural networks',
             'machine learning', 'deep learning'],
     classifiers = [
