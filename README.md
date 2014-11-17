@@ -102,3 +102,9 @@ libcudnn.cudnnDestroyFilterDescriptor(filters_desc)
 libcudnn.cudnnDestroyConvolutionDescriptor(conv_desc)
 libcudnn.cudnnDestroy(cudnn_context)
 ```
+
+Installation
+------------
+
+Install from PyPi with
+    pip install cudnn-python-wrappers
