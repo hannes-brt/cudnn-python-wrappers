@@ -19,8 +19,8 @@ faithfully replicates the C API, the user is responsible for
 allocating and deallocating handles to all cuDNN data structures and
 passing references to arrays as pointers. However, cuDNN status codes
 are translated to Python exceptions. The most common application for
-these wrappers will be to be used along [PyCUDA]
-(http://mathema.tician.de/software/pycuda/), but they will work
+these wrappers will be to be used along `PyCUDA 
+<http://mathema.tician.de/software/pycuda/>`__, but they will work
 equally well with other frameworks such as `CUDAMat
 <https://github.com/cudamat/cudamat>`__.
 
