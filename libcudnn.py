@@ -6,7 +6,7 @@ import sys
 import ctypes
 import ctypes.util
 
-if sys.platform == 'linux2':
+if sys.platform in ('linux2', 'linux'):
     _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.6.5', 'libcudnn.so.6.5.18']
 elif sys.platform == 'win32':
     _libcudnn_libname_list = ['cudnn64_65.dll']
