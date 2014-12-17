@@ -1078,13 +1078,15 @@ def cudnnCreatePoolingDescriptor():
 
     return poolingDesc.value
 
-_libcudnn.cudnnSetPoolingDescriptor.restype = int
-_libcudnn.cudnnSetPoolingDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int,
+_libcudnn.cudnnSetPooling2dDescriptor.restype = int
+_libcudnn.cudnnSetPooling2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int,
+                                                ctypes.c_int, ctypes.c_int,
                                                 ctypes.c_int, ctypes.c_int,
                                                 ctypes.c_int, ctypes.c_int]
-def cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight, windowWidth, verticalStride, horizontalStride):
+def cudnnSetPooling2dDescriptor(poolingDesc, mode, windowHeight, windowWidth,
+                                verticalPadding, horizontalPadding, verticalStride, horizontalStride):
     """"
-    Initialize a pooling descriptor.
+    Initialize a 2D pooling descriptor.
 
     This function initializes a previously created pooling descriptor object.
 
@@ -1098,50 +1100,63 @@ def cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight, windowWidth, vert
         Height of the pooling window.
     windowWidth : int
         Width of the pooling window.
+    verticalPadding: int
+        Size of vertical padding.
+    horizontalPadding: int
+        Size of horizontal padding.
     verticalStride : int
         Pooling vertical stride.
     horizontalStride : int
         Pooling horizontal stride.
     """
 
-    status = _libcudnn.cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight,
-                                                 windowWidth, verticalStride, horizontalStride)
+    status = _libcudnn.cudnnSetPooling2dDescriptor(poolingDesc, mode, windowHeight,
+                                                 windowWidth, verticalPadding, horizontalPadding,
+                                                 verticalStride, horizontalStride)
     cudnnCheckStatus(status)
 
-_libcudnn.cudnnGetPoolingDescriptor.restype = int
-_libcudnn.cudnnGetPoolingDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnGetPoolingDescriptor(poolingDesc):
+_libcudnn.cudnnGetPooling2dDescriptor.restype = int
+_libcudnn.cudnnGetPooling2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p]
+def cudnnGetPooling2dDescriptor(poolingDesc):
     """"
     This function queries a previously created pooling descriptor object.
 
     Parameters
     ----------
     poolingDesc : cudnnPoolingDescriptor
-    Handle to a previously created pooling descriptor.
+    Handle to a previously created 2D pooling descriptor.
 
     Returns
     -------
     mode : cudnnPoolingMode
-    Enumerant to specify the pooling mode.
+        Enumerant to specify the pooling mode.
     windowHeight : int
-    Height of the pooling window.
+        Height of the pooling window.
     windowWidth : int
-    Width of the pooling window.
+        Width of the pooling window.
+    verticalPadding: int
+        Size of vertical padding.
+    horizontalPadding: int
+        Size of horizontal padding.
     verticalStride : int
-    Pooling vertical stride.
+        Pooling vertical stride.
     horizontalStride : int
-    Pooling horizontal stride.
+        Pooling horizontal stride.
     """
 
     mode = ctypes.c_int()
     windowHeight = ctypes.c_int()
     windowWidth = ctypes.c_int()
+    verticalPadding = ctypes.c_int()
+    horizontalPadding = ctypes.c_int()
     verticalStride = ctypes.c_int()
     horizontalStride = ctypes.c_int()
 
     status = _libcudnn.cudnnGetPoolingDescriptor(poolingDesc, ctypes.byref(mode), ctypes.byref(windowHeight),
-                                              ctypes.byref(windowWidth), ctypes.byref(verticalStride),
+                                              ctypes.byref(windowWidth), ctypes.byref(verticalPadding),
+                                              ctypes.byref(horizontalPadding), ctypes.byref(verticalStride),
                                               ctypes.byref(horizontalStride))
     cudnnCheckStatus(status)
 
