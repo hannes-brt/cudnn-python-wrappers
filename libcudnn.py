@@ -147,25 +147,49 @@ cudnnAddMode = {
 # mathematically to a convolution or to a cross-correlation. (A cross-correlation is
 # equivalent to a convolution with its filter rotated by 180 degrees.)
 cudnnConvolutionMode = {
-    'CUDNN_CONVOLUTION': 0,
-    'CUDNN_CROSS_CORRELATION': 1
+    'CUDNN_CONVOLUTION': 0, # In this mode, a convolution operation will be done
+                            # when applying the filter to the images.
+    'CUDNN_CROSS_CORRELATION': 1 # In this mode, a cross-correlation operation will
+                            # be done when applying the filter to the images.
 }
 
+# cudnnConvolutionFwdPreference_t is an enumerated type used by
+# cudnnGetConvolutionForwardAlgorithm() to help the choice of the algorithm used for the
+# forward convolution.
 cudnnConvolutionFwdPreference = {
-    'CUDNN_CONVOLUTION_FWD_NO_WORKSPACE':  0,
-    'CUDNN_CONVOLUTION_FWD_PREFER_FASTEST': 1,
-    'CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT': 2
+    'CUDNN_CONVOLUTION_FWD_NO_WORKSPACE':  0, # In this configuration, the routine
+                        # cudnnGetConvolutionForwardAlgorithm() is guaranteed to return
+                        # an algorithm that does not require any extra workspace to be
+                        # provided by the user.
+    'CUDNN_CONVOLUTION_FWD_PREFER_FASTEST': 1, # In this configuration, the routine
+                        # cudnnGetConvolutionForwardAlgorithm() will return the fastest
+                        # algorithm regardless how much workspace is needed to execute it.
+    'CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT': 2 # In this configuration, the routine
+                        # cudnnGetConvolutionForwardAlgorithm() will return the fastest
+                        # algorithm that fits within the memory limit that the user provided.
 }
 
+# cudnnConvolutionFwdAlgo_t is an enumerated type that exposes the different algorithm
+# available to execute the forward convolution operation.
 cudnnConvolutionFwdAlgo = {
-    'CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM': 0,
-    'CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM': 1,
-    'CUDNN_CONVOLUTION_FWD_ALGO_GEMM': 2,
-    'CUDNN_CONVOLUTION_FWD_ALGO_DIRECT': 3
+    'CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM': 0, # This algorithm expresses the convolution
+                        # as a matrix product without actually explicitly forming the matrix
+                        # that holds the input tensor data.
+    'CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM': 1, # This algorithm expresses the convolution
+                        # as a matrix product without actually explicitly forming the matrix
+                        # that holds the input tensor data, but still needs some memory
+                        # workspace to precompute some indices in order to facilitate the
+                        # implicit construction of the matrix that holds the input tensor data.
+    'CUDNN_CONVOLUTION_FWD_ALGO_GEMM': 2, # This algorithm expresses the convolution as an
+                        # explicit matrix product. A significant memory workspace is needed to
+                        # store the matrix that holds the input tensor data.
+    'CUDNN_CONVOLUTION_FWD_ALGO_DIRECT': 3 # This algorithm expresses the convolution as a
+                        # direct convolution (e.g without implicitly or explicitly doing a
+                        # matrix multiplication).
 }
 
 # cudnnSoftmaxAlgorithm_t is used to select an implementation of the softmax
-# function used in cudnnSoftmaxForward() and cudnnSoftmaxBackward() .
+# function used in cudnnSoftmaxForward() and cudnnSoftmaxBackward().
 cudnnSoftmaxAlgorithm = {
     'CUDNN_SOFTMAX_FAST': 0,    # This implementation applies the straightforward
                                 # softmax operation.
@@ -487,7 +511,7 @@ def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destDa
     alpha : void_p
         Scalar factor to be applied to every element of the input tensor before it is added
         to the output tensor.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Pointer to data of the tensor described by srcDesc descriptor.
@@ -527,7 +551,7 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
     alpha : void_p
         Scalar factor to be applied to every data element of the bias tensor before it is added
         to the output tensor.
-    biasDesc : cudnnTensor4dDescriptor
+    biasDesc : cudnnTensorDescriptor
         Handle to a previoulsy initialized tensor descriptor.
     biasData : void_p
         Pointer to data of the tensor described by biasDesc.
@@ -535,7 +559,7 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
         Scaling factor which is applied on every element of the output tensor prior to adding
         the result of the operation. Note that if beta is zero, the output is not read and can
         contain any uninitialized data (including Nan numbers).
-    srcDestDesc : cudnnTensor4dDescriptor
+    srcDestDesc : cudnnTensorDescriptor
         Handle to a previoulsy initialized tensor descriptor.
     srcDestData : void_p
         Pointer to data of the tensor described by srcDestDesc.
@@ -698,7 +722,7 @@ def cudnnSetConvolution2dDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h
     ----------
     convDesc : cudnnConvolutionDescriptor
         Handle to a previously created convolution descriptor.
-    inputTensorDesc : cudnnTensor4dDescriptor
+    inputTensorDesc : cudnnTensorDescriptor
         Input tensor descriptor used for that layer on the forward path.
     filterDesc : cudnnFilterDescriptor
         Filter descriptor used for that layer on the forward path.
@@ -852,7 +876,7 @@ def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor srcDesc.
@@ -862,7 +886,7 @@ def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
         Data pointer to GPU memory associated with the filter descriptor filterDesc.
     convDesc : cudnnConvolutionDescriptor
         Previously initialized convolution descriptor.
-    destDesc : cudnnTensor4dDescriptor
+    destDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the tensor descriptor destDesc.
@@ -891,12 +915,12 @@ def cudnnConvolutionBackwardBias(handle, srcDesc, srcData, destDesc, destData, a
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc .
-    destDesc : cudnnTensor4dDescriptor
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
@@ -925,12 +949,12 @@ def cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc, diffData,
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc .
-    diffDesc : cudnnTensor4dDescriptor
+    diffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     diffData : void_p
         Data pointer to GPU memory associated with the input differential tensor
@@ -1001,12 +1025,12 @@ def cudnnSoftmaxForward(handle, algorithm, mode, srcDesc, srcData, destDesc, des
         Enumerant to specify the softmax algorithm.
     mode : cudnnSoftmaxMode
         Enumerant to specify the softmax mode.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc .
-    destDesc : cudnnTensor4dDescriptor
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
@@ -1035,17 +1059,17 @@ def cudnnSoftmaxBackward(handle, algorithm, mode, srcDesc, srcData, srcDiffDesc,
         Enumerant to specify the softmax algorithm.
     mode : cudnnSoftmaxMode
         Enumerant to specify the softmax mode.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
-    srcDiffDesc : cudnnTensor4dDescriptor
+    srcDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     srcDiffData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDiffData.
-    destDiffDesc : cudnnTensor4dDescriptor
+    destDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized output differential tensor descriptor.
     destDiffData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
@@ -1192,12 +1216,12 @@ def cudnnPoolingForward(handle, poolingDesc, srcDesc, srcData, destDesc, destDat
         Handle to a previously created cuDNN context.
     poolingDesc : cudnnPoolingDescriptor
         Handle to a previously initialized pooling descriptor.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
-    destDesc : cudnnTensor4dDescriptor
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
@@ -1227,22 +1251,22 @@ def cudnnPoolingBackward(handle, poolingDesc, srcDesc, srcData, srcDiffDesc,
         Handle to a previously created cuDNN context.
     poolingDesc : cudnnPoolingDescriptor
         Handle to the previously initialized pooling descriptor.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
-    srcDiffDesc : cudnnTensor4dDescriptor
+    srcDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     srcDiffData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDiffData.
-    destDesc : cudnnTensor4dDescriptor
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDesc.
-    destDiffDesc : cudnnTensor4dDescriptor
+    destDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized output differential tensor descriptor.
     destDiffData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
@@ -1298,28 +1322,40 @@ def cudnnActivationBackward(handle, mode, srcDesc, srcData, srcDiffDesc, srcDiff
 
     This routine computes the gradient of a neuron activation function.
 
+    In-place operation is allowed for this routine; i.e., srcData and destData
+    pointers may be equal and srcDiffData and destDiffData pointers may be equal.
+    However, this requires the corresponding tensor descriptors to be identical
+    (particularly, the strides of the input and output must match for in-place operation
+    to be allowed).
+
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
     mode : cudnnActivationMode
         Enumerant to specify the activation mode.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
+    alpha: void_p
+        Scaling factor with which every element of the input tensor is multiplied.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
-    srcDiffDesc : cudnnTensor4dDescriptor
+    srcDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     srcDiffData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDiffData.
-    destDesc : cudnnTensor4dDescriptor
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDesc.
-    destDiffDesc : cudnnTensor4dDescriptor
+    beta: void_p
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the activation gradient. Note that if beta is zero, the
+        output is not read and can contain any uninitialized data (including Nan numbers).
+    destDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized output differential tensor descriptor.
     destDiffData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
