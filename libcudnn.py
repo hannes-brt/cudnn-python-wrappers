@@ -116,7 +116,7 @@ cudnnDataType = {
                             # ( double ).
 }
 
-# cudnnAddMode_t is an enumerated type used by cudnnAddTensor4d() to specify how
+# cudnnAddMode_t is an enumerated type used by cudnnAddTensor() to specify how
 # a bias tensor is added to an input/output tensor.
 cudnnAddMode = {
    'CUDNN_ADD_IMAGE': 0,
@@ -491,14 +491,14 @@ def cudnnDestroyTensorDescriptor(tensorDesc):
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnTransformTensor.restype = int
-_libcudnn.cudnnTransformTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                             ctypes.c_void_p, ctypes.c_void_p,
+_libcudnn.cudnnTransformTensor.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_void_p,
+                                             ctypes.c_void_p, ctypes.c_float,
                                              ctypes.c_void_p, ctypes.c_void_p]
 def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destData):
     """"
     Tensor layout conversion helper (dest = alpha * src + beta * dest).
 
-    This function copies the data from one tensor to another tensor with a different
+    This function copies the scaled data from one tensor to another tensor with a different
     layout. Those descriptors need to have the same dimensions but not necessarily the
     same strides. The input and output tensors must not overlap in any way (i.e., tensors
     cannot be transformed in place). This function can be used to convert a tensor with an
@@ -508,14 +508,14 @@ def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destDa
     ----------
     handle : cudnnHandle
         cuDNN context.
-    alpha : void_p
+    alpha : c_float
         Scalar factor to be applied to every element of the input tensor before it is added
         to the output tensor.
     srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Pointer to data of the tensor described by srcDesc descriptor.
-    beta: void_p
+    beta: c_float
         Scaling factor which is applied on every element of the output tensor prior to adding
         the result of the operation. Note that if beta is zero, the output is not read and can
         contain any uninitialized data (including Nan numbers).
@@ -525,14 +525,15 @@ def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destDa
         Pointer to data of the tensor described by destDesc descriptor.
     """
 
-    status = _libcudnn.cudnnTransformTensor4d(handle, alpha, srcDesc, srcData, beta,
+    status = _libcudnn.cudnnTransformTensor(handle, ctypes.byref(alpha), srcDesc,
+                                                srcData, ctypes.byref(beta),
                                                 destDesc, destData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnAddTensor.restype = int
-_libcudnn.cudnnAddTensor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
-                                       ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                       ctypes.c_void_p, ctypes.c_void_p,]
+_libcudnn.cudnnAddTensor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_float,
+                                       ctypes.c_void_p, ctypes.c_void_p, ctypes.c_float,
+                                       ctypes.c_void_p, ctypes.c_void_p]
 def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, srcDestData):
     """"
     Tensor Bias addition : srcDest = alpha * bias + beta * srcDestDesc.
@@ -540,7 +541,7 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
     This function adds the scaled values of one tensor to another tensor. The mode parameter
     can be used to select different ways of performing the scaled addition. The amount
     of data described by the biasDesc descriptor must match exactly the amount of data
-    needed to perform the addition. Therefore, the following conditions must be met:
+    needed to perform the addition.
 
     Parameters
     ----------
@@ -548,14 +549,14 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
         Handle to a cuDNN context.
     mode : cudnnAddMode
         Addition mode that describes how the addition is performed
-    alpha : void_p
+    alpha : c_float
         Scalar factor to be applied to every data element of the bias tensor before it is added
         to the output tensor.
     biasDesc : cudnnTensorDescriptor
         Handle to a previoulsy initialized tensor descriptor.
     biasData : void_p
         Pointer to data of the tensor described by biasDesc.
-    beta: void_p
+    beta: c_float
         Scaling factor which is applied on every element of the output tensor prior to adding
         the result of the operation. Note that if beta is zero, the output is not read and can
         contain any uninitialized data (including Nan numbers).
@@ -565,11 +566,55 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
         Pointer to data of the tensor described by srcDestDesc.
     """
 
-    status = _libcudnn.cudnnAddTensor(handle, mode, alpha, biasDesc,
-                                        biasData,
-                                        beta,
-                                        srcDestDesc,
-                                        srcDestData)
+    status = _libcudnn.cudnnAddTensor(handle, mode, ctypes.byref(alpha), biasDesc,
+                                        biasData, ctypes.byref(beta),
+                                        srcDestDesc, srcDestData)
+    cudnnCheckStatus(status)
+
+_libcudnn.cudnnSetTensor.restype = int
+_libcudnn.cudnnSetTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                             ctypes.c_void_p, ctypes.c_float]
+def cudnnSetTensor(handle, srcDesc, srcData, alpha):
+    """"
+    Set all data points of a tensor to a given value : srcDest = alpha.
+
+    Parameters
+    ----------
+    handle : cudnnHandle
+        Handle to a previously created cuDNN context.
+    srcDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    srcData : void_p
+        Pointer to data of the tensor described by srcDesc descriptor.
+    alpha : c_float
+        Value that all elements of the tensor will be set to.
+    """
+
+    status = _libcudnn.cudnnSetTensor(handle, srcDesc, srcData, ctypes.byref(alpha))
+    cudnnCheckStatus(status)
+
+_libcudnn.cudnnScaleTensor.restype = int
+_libcudnn.cudnnScaleTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                             ctypes.c_void_p, ctypes.c_float]
+def cudnnScaleTensor(handle, srcDesc, srcData, alpha):
+    """"
+    This function scales all the elements of a tensor by a give factor.
+
+    Set all data points of a tensor to scaled value : srcDest = alpha * srcDest.
+
+    Parameters
+    ----------
+    handle : cudnnHandle
+        Handle to a previously created cuDNN context.
+    srcDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    srcData : void_p
+        Pointer to data of the tensor described by srcDesc descriptor.
+    alpha : c_float
+        Value that all elements of the tensor will be scaled with.
+    """
+
+    status = _libcudnn.cudnnScaleTensor(handle, srcDesc, srcData, ctypes.byref(alpha))
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnCreateFilterDescriptor.restype = int
@@ -578,8 +623,8 @@ def cudnnCreateFilterDescriptor():
     """"
     Create a filter descriptor.
 
-    This function creates a filter descriptor object by allocating the memory needed to hold
-its opaque structure.
+    This function creates a filter descriptor object by allocating the memory needed
+    to hold its opaque structure.
 
     Parameters
     ----------
