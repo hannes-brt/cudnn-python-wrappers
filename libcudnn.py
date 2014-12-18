@@ -491,8 +491,8 @@ def cudnnDestroyTensorDescriptor(tensorDesc):
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnTransformTensor.restype = int
-_libcudnn.cudnnTransformTensor.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_void_p,
-                                             ctypes.c_void_p, ctypes.c_float,
+_libcudnn.cudnnTransformTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                             ctypes.c_void_p, ctypes.c_void_p,
                                              ctypes.c_void_p, ctypes.c_void_p]
 def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destData):
     """"
@@ -508,14 +508,14 @@ def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destDa
     ----------
     handle : cudnnHandle
         cuDNN context.
-    alpha : c_float
+    alpha : float
         Scalar factor to be applied to every element of the input tensor before it is added
         to the output tensor.
     srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Pointer to data of the tensor described by srcDesc descriptor.
-    beta: c_float
+    beta: float
         Scaling factor which is applied on every element of the output tensor prior to adding
         the result of the operation. Note that if beta is zero, the output is not read and can
         contain any uninitialized data (including Nan numbers).
@@ -648,8 +648,8 @@ def cudnnSetFilter4dDescriptor(filterDesc, dataType, k, c, h, w):
     """"
     Initialize a filter descriptor.
 
-    This function initializes a previously created filter descriptor object. Filters layout must
-be contiguous in memory.
+    This function initializes a previously created filter descriptor object into a 4D filter.
+    Filters layout must be contiguous in memory.
 
     Parameters
     ----------
@@ -750,27 +750,23 @@ def cudnnCreateConvolutionDescriptor():
     return convDesc.value
 
 _libcudnn.cudnnSetConvolution2dDescriptor.restype = int
-_libcudnn.cudnnSetConvolution2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int,
-                                                    ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                    ctypes.c_int]
-def cudnnSetConvolution2dDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h, pad_w, u, v, upscalex, upscaley, mode):
+_libcudnn.cudnnSetConvolution2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int,
+                                                    ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                                    ctypes.c_int, ctypes.c_int]
+def cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v, upscalex, upscaley, mode):
     """"
     Initialize a convolution descriptor.
 
-    This function initializes a previously created convolution descriptor object, according
-    to an input tensor descriptor and a filter descriptor passed as parameter. This function
-    assumes that the tensor and filter descriptors corresponds to the formard convolution
-    path and checks if their settings are valid. That same convolution descriptor can be
-    reused in the backward path provided it corresponds to the same layer.
+    This function initializes a previously created convolution descriptor object into a 2D
+    correlation. This function assumes that the tensor and filter descriptors corresponds
+    to the formard convolution path and checks if their settings are valid. That same
+    convolution descriptor can be reused in the backward path provided it corresponds to
+    the same layer.
 
     Parameters
     ----------
     convDesc : cudnnConvolutionDescriptor
         Handle to a previously created convolution descriptor.
-    inputTensorDesc : cudnnTensorDescriptor
-        Input tensor descriptor used for that layer on the forward path.
-    filterDesc : cudnnFilterDescriptor
-        Filter descriptor used for that layer on the forward path.
     pad_h : int
         zero-padding height: number of rows of zeros implicitly concatenated
         onto the top and onto the bottom of input images.
@@ -786,19 +782,16 @@ def cudnnSetConvolution2dDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h
     uscaley : int
         Upscale the input in y-direction.
     mode : int
-        Selects between CUDNN_CONVOLUTION and CUDNN_CROSS_CORRELATION
+        Selects between CUDNN_CONVOLUTION and CUDNN_CROSS_CORRELATION.
     """
 
-    status = _libcudnn.cudnnSetConvolution2dDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h,
-                                                     pad_w, u, v, upscalex, upscaley, mode)
+    status = _libcudnn.cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v,
+                                                        upscalex, upscaley, mode)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnGetConvolution2dDescriptor.restype = int
-_libcudnn.cudnnGetConvolution2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                      ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                      ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                      ctypes.c_int, ctypes.c_int, ctypes.c_int]
-def cudnnGetConvolution2dDescriptor(convDesc, n, c, h, w, k, r, s, pad_h, pad_w, u, v, upscalex, upscaley, mode):
+_libcudnn.cudnnGetConvolution2dDescriptor.argtypes = [ctypes.c_void_p]
+def cudnnGetConvolution2dDescriptor(convDesc):
     """"
     Get a convolution descriptor.
 
@@ -808,6 +801,9 @@ def cudnnGetConvolution2dDescriptor(convDesc, n, c, h, w, k, r, s, pad_h, pad_w,
     ----------
     convDesc : cudnnConvolutionDescriptor
         Handle to a previously created convolution descriptor.
+
+    Returns
+    -------
     pad_h : int
         zero-padding height: number of rows of zeros implicitly concatenated onto
         the top and onto the bottom of input images.
@@ -823,7 +819,7 @@ def cudnnGetConvolution2dDescriptor(convDesc, n, c, h, w, k, r, s, pad_h, pad_w,
     upscaley : int
         Upscale the input in y-direction.
     mode : cudnnConvolutionMode
-        Selects between CUDNN_CONVOLUTION and CUDNN_CROSS_CORRELATION.
+        Either CUDNN_CONVOLUTION or CUDNN_CROSS_CORRELATION.
     """
     pad_h = ctypes.c_int()
     pad_w = ctypes.c_int()
@@ -844,16 +840,16 @@ def cudnnGetConvolution2dDescriptor(convDesc, n, c, h, w, k, r, s, pad_h, pad_w,
     return pad_h.value, pad_w.value, u.value, v.value, upscalex.value, upscaley.value, mode.value
 
 _libcudnn.cudnnGetConvolution2dForwardOutputDim.restype = int
-_libcudnn.cudnnGetConvolution2dForwardOutputDim.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
-                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+_libcudnn.cudnnGetConvolution2dForwardOutputDim.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
 def cudnnGetConvolution2dForwardOutputDim(convDesc, inputTensorDesc, filterDesc):
     """"
     Return the dimensions of the output tensor given a convolution descriptor.
 
     This function returns the dimensions of the resulting 4D tensor of a 2D
     convolution, given the convolution descriptor, the input tensor descriptor and
-    the filter descriptor This function can help to setup the output tensor and allocate
-    the proper amount of memory prior to launch the actual convolution.
+    the filter descriptor. This function can help to setup the output tensor and allocate
+    the proper amount of memory prior to launching the actual convolution.
 
     Parameters
     ----------

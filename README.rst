@@ -19,7 +19,7 @@ faithfully replicates the C API, the user is responsible for
 allocating and deallocating handles to all cuDNN data structures and
 passing references to arrays as pointers. However, cuDNN status codes
 are translated to Python exceptions. The most common application for
-these wrappers will be to be used along `PyCUDA 
+these wrappers will be to be used along `PyCUDA
 <http://mathema.tician.de/software/pycuda/>`__, but they will work
 equally well with other frameworks such as `CUDAMat
 <https://github.com/cudamat/cudamat>`__.
@@ -69,28 +69,28 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
         filters_in, height_filter, width_filter).astype(np.float32))
 
     #Descriptor for input
-    X_desc = libcudnn.cudnnCreateTensor4dDescriptor()
+    X_desc = libcudnn.cudnnCreateTensorDescriptor()
     libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type,
         n_input, filters_in, height_filter, width_filter)
 
     # Filter descriptor
     filters_desc = libcudnn.cudnnCreateFilterDescriptor()
-    libcudnn.cudnnSetFilterDescriptor(filters_desc, data_type, filters_out,
+    libcudnn.cudnnSetFilter4dDescriptor(filters_desc, data_type, filters_out,
         filters_in, height_filter, width_filter)
 
     # Convolution descriptor
     conv_desc = libcudnn.cudnnCreateConvolutionDescriptor()
-    libcudnn.cudnnSetConvolutionDescriptor(conv_desc, X_desc, filters_desc,
+    libcudnn.cudnnSetConvolution2dDescriptor(conv_desc, X_desc, filters_desc,
         pad_h, pad_w, vertical_stride, horizontal_stride, upscalex, upscaley,
         convolution_mode)
 
     # Get output dimensions (first two values are n_input and filters_out)
-    _, _, height_output, width_output = libcudnn.cudnnGetOutputTensor4dDim(
-        conv_desc, convolution_path)
+    _, _, height_output, width_output = libcudnn.cudnnGetConvolution2dForwardOutputDim(
+        conv_desc, X_desc, filters_desc)
 
     # Output tensor
     Y = gpuarray.empty((n_input, filters_out, height_output, width_output), np.float32)
-    Y_desc = libcudnn.cudnnCreateTensor4dDescriptor()
+    Y_desc = libcudnn.cudnnCreateTensorDescriptor()
     libcudnn.cudnnSetTensor4dDescriptor(Y_desc, tensor_format, data_type, n_input,
         filters_out, height_output, width_output)
 
@@ -119,4 +119,3 @@ Install from PyPi with
 ::
 
     pip install cudnn-python-wrappers
-
