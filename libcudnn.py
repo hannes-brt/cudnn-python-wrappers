@@ -901,6 +901,51 @@ def cudnnDestroyConvolutionDescriptor(convDesc):
     status = _libcudnn.cudnnDestroyConvolutionDescriptor(convDesc)
     cudnnCheckStatus(status)
 
+_libcudnn.cudnnGetConvolutionForwardAlgorithm.restype = int
+_libcudnn.cudnnGetConvolutionForwardAlgorithm.argtypes = [ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p,
+                                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int,
+                                              ctypes.c_int, ctypes.c_void_p]
+def cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
+                            convDesc, destDesc, preference, memoryLimitInbytes):
+    """"
+    This function returns the best algorithm to choose for the forward convolution
+    depending on the critera expressed in the cudnnConvolutionFwdPreference_t enumerant.
+
+    Parameters
+    ----------
+    handle : cudnnHandle
+        Handle to a previously created cuDNN context.
+    srcDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    filterDesc : cudnnFilterDescriptor
+        Handle to a previously initialized filter descriptor.
+    convDesc : cudnnConvolutionDescriptor
+        Previously initialized convolution descriptor.
+    destDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    preference : cudnnConvolutionFwdPreference
+        Enumerant to express the preference criteria in terms of memory
+        requirement and speed.
+    memoryLimitInbytes: size_t
+        The maximum amount of GPU memory the user is willing to use as a workspace
+        when preference is CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT.
+
+    Returns
+    -------
+    algo: cudnnConvolutionFwdAlgo
+        Enumerant that specifies which convolution algorithm should be used to
+        compute the results according to the specified preference.
+    """
+    algo = ctypes.c_int()
+
+    status = _libcudnn.cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
+                                               convDesc, destDesc, preference,
+                                               memoryLimitInbytes, ctypes.byref(algo))
+    cudnnCheckStatus(status)
+
+    return algo
+
 _libcudnn.cudnnConvolutionForward.restype = int
 _libcudnn.cudnnConvolutionForward.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                               ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
