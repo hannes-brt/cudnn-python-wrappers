@@ -44,7 +44,7 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     tensor_format = libcudnn.cudnnTensorFormat['CUDNN_TENSOR_NCHW']
     data_type = libcudnn.cudnnDataType['CUDNN_DATA_FLOAT']
     convolution_mode = libcudnn.cudnnConvolutionMode['CUDNN_CROSS_CORRELATION']
-    convolution_path = libcudnn.cudnnConvolutionPath['CUDNN_CONVOLUTION_FORWARD']
+    convolution_fwd_pref = libcudnn.cudnnConvolutionFwdPreference['CUDNN_CONVOLUTION_FWD_NO_WORKSPACE']
 
     n_input = 100
     filters_in = 10
@@ -80,8 +80,8 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
 
     # Convolution descriptor
     conv_desc = libcudnn.cudnnCreateConvolutionDescriptor()
-    libcudnn.cudnnSetConvolution2dDescriptor(conv_desc, X_desc, filters_desc,
-        pad_h, pad_w, vertical_stride, horizontal_stride, upscalex, upscaley,
+    libcudnn.cudnnSetConvolution2dDescriptor(conv_desc, pad_h, pad_w,
+        vertical_stride, horizontal_stride, upscalex, upscaley,
         convolution_mode)
 
     # Get output dimensions (first two values are n_input and filters_out)
@@ -105,8 +105,8 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
         Y_desc, Y_data, accumulate)
 
     # Clean up
-    libcudnn.cudnnDestroyTensor4dDescriptor(X_desc)
-    libcudnn.cudnnDestroyTensor4dDescriptor(Y_desc)
+    libcudnn.cudnnDestroyTensorDescriptor(X_desc)
+    libcudnn.cudnnDestroyTensorDescriptor(Y_desc)
     libcudnn.cudnnDestroyFilterDescriptor(filters_desc)
     libcudnn.cudnnDestroyConvolutionDescriptor(conv_desc)
     libcudnn.cudnnDestroy(cudnn_context)
