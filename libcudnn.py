@@ -905,7 +905,7 @@ _libcudnn.cudnnGetConvolutionForwardAlgorithm.restype = int
 _libcudnn.cudnnGetConvolutionForwardAlgorithm.argtypes = [ctypes.c_void_p,
                                                 ctypes.c_void_p, ctypes.c_void_p,
                                               ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int,
-                                              ctypes.c_int, ctypes.c_void_p]
+                                              ctypes.c_size_t, ctypes.c_void_p]
 def cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
                             convDesc, destDesc, preference, memoryLimitInbytes):
     """"
@@ -945,6 +945,47 @@ def cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
     cudnnCheckStatus(status)
 
     return algo
+
+_libcudnn.cudnnGetConvolutionForwardWorkspaceSize.restype = int
+_libcudnn.cudnnGetConvolutionForwardWorkspaceSize.argtypes = [ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p,
+                                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int,
+                                              ctypes.c_void_p]
+def cudnnGetConvolutionForwardWorkspaceSize(handle, srcDesc, filterDesc,
+                            convDesc, destDesc, algo):
+    """"
+    This function returns the amount of GPU memory workspace the user needs
+    to allocate to be able to call cudnnConvolutionForward with the specified algorithm.
+
+    Parameters
+    ----------
+    handle : cudnnHandle
+        Handle to a previously created cuDNN context.
+    srcDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    filterDesc : cudnnFilterDescriptor
+        Handle to a previously initialized filter descriptor.
+    convDesc : cudnnConvolutionDescriptor
+        Previously initialized convolution descriptor.
+    destDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    algo : cudnnConvolutionFwdAlgo
+        Enumerant that specifies the chosen convolution algorithm.
+
+    Returns
+    -------
+    sizeInBytes: c_size_t
+        Amount of GPU memory needed as workspace to be able to execute a
+        forward convolution with the sepcified algo.
+    """
+    sizeInBytes = ctypes.c_size_t()
+
+    status = _libcudnn.cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
+                                               convDesc, destDesc, algo,
+                                               ctypes.byref(sizeInBytes))
+    cudnnCheckStatus(status)
+
+    return sizeInBytes
 
 _libcudnn.cudnnConvolutionForward.restype = int
 _libcudnn.cudnnConvolutionForward.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
