@@ -980,7 +980,7 @@ def cudnnGetConvolutionForwardWorkspaceSize(handle, srcDesc, filterDesc,
     """
     sizeInBytes = ctypes.c_size_t()
 
-    status = _libcudnn.cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
+    status = _libcudnn.cudnnGetConvolutionForwardWorkspaceSize(handle, srcDesc, filterDesc,
                                                convDesc, destDesc, algo,
                                                ctypes.byref(sizeInBytes))
     cudnnCheckStatus(status)
