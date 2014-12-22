@@ -244,6 +244,15 @@ def cudnnCheckStatus(status):
             raise cudnnError
 
 # Helper functions
+
+_libcudnn.cudnnGetVersion.restype =  ctypes.c_size_t
+_libcudnn.cudnnGetVersion.argtypes = []
+def cudnnGetVersion():
+    """
+    Get cuDNN Version.
+    """
+    return _libcudnn.cudnnGetVersion()
+
 _libcudnn.cudnnCreate.restype = int
 _libcudnn.cudnnCreate.argtypes = [ctypes.c_void_p]
 def cudnnCreate():
@@ -991,18 +1000,22 @@ _libcudnn.cudnnConvolutionForward.restype = int
 _libcudnn.cudnnConvolutionForward.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                               ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                               ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
-                            convDesc, destDesc, destData, accumulate):
+def cudnnConvolutionForward(handle, alpha, srcDesc, srcData, filterDesc, filterData,
+                            convDesc, algo, workspace, workSpaceSizeInBytes, beta,
+                            destDesc, destData):
     """"
-    Perform forward convolution.
+    Perform forward convolution. All of the form "output = alpha * Op(inputs) + beta * output".
 
     This function executes convolutions or cross-correlations over src using the specified
-    filters , returning results in dest.
+    filters, returning results in dest. Scaling factors alpha and beta can be used to scale
+    the input tensor and the output tensor respectively.
 
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
     srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
@@ -1013,23 +1026,33 @@ def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
         Data pointer to GPU memory associated with the filter descriptor filterDesc.
     convDesc : cudnnConvolutionDescriptor
         Previously initialized convolution descriptor.
+    algo: cudnnConvolutionFwdAlgo
+        Enumerant that specifies which convolution algorithm shoud be used to
+        compute the results.
+    workSpace: void_p
+        Data pointer to GPU memory to a workspace needed to able to execute
+        the specified algorithm. If no workspace is needed for a particular
+        algorithm, that pointer can be nil.
+    workSpaceSizeInBytes: size_t
+        Specifies the size in bytes of the provided workSpace.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the convolution.
     destDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the tensor descriptor destDesc.
-    accumulate : cudnnAccumulateResult
-        Enumerant that specifies whether the convolution accumulates with or
-        overwrites the output tensor.
     """
 
-    status = _libcudnn.cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
-                                               convDesc, destDesc, destData, accumulate)
+    status = _libcudnn.cudnnConvolutionForward(handle, alpha, srcDesc, srcData, filterDesc, filterData,
+                                               convDesc, algo, workspace, workSpaceSizeInBytes, beta,
+                                               destDesc, destData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnConvolutionBackwardBias.restype = int
 _libcudnn.cudnnConvolutionBackwardBias.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                                    ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionBackwardBias(handle, srcDesc, srcData, destDesc, destData, accumulate):
+def cudnnConvolutionBackwardBias(handle, alpha, srcDesc, srcData, beta, destDesc, destData):
     """"
     Compute the gradient wrt the bias.
 
@@ -1042,31 +1065,35 @@ def cudnnConvolutionBackwardBias(handle, srcDesc, srcData, destDesc, destData, a
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
     srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
-        srcDesc .
+        srcDesc.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the convolution gradient. Note that if beta is zero,
+        the output is not read and can contain any uninitialized data (including
+        Nan numbers).
     destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDesc.
-    accumulate : cudnnAccumulateResult
-        Enumerant that specifies whether the convolution accumulates with or
-        overwrites the output tensor.
     """
 
-    status = _libcudnn.cudnnConvolutionBackwardBias(handle, srcDesc, srcData, destDesc,
-                                                    destData, accumulate)
+    status = _libcudnn.cudnnConvolutionBackwardBias(handle, alpha, srcDesc, srcData, beta,
+                                                    destDesc, destData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnConvolutionBackwardFilter.restype = int
 _libcudnn.cudnnConvolutionBackwardFilter.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                                      ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                                      ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc, diffData,
-                                   convDesc, gradDesc, gradData, accumulate):
+def cudnnConvolutionBackwardFilter(handle, alpha, srcDesc, srcData, diffDesc, diffData,
+                                   convDesc, beta, gradDesc, gradData):
     """"
     Compute the gradient wrt the filter coefficients.
 
@@ -1076,11 +1103,13 @@ def cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc, diffData,
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
     srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
-        srcDesc .
+        srcDesc.
     diffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     diffData : void_p
@@ -1088,19 +1117,20 @@ def cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc, diffData,
         descriptor diffDesc.
     convDesc : cudnnConvolutionDescriptor
         Previously initialized convolution descriptor.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the convolution gradient. Note that if beta is zero,
+        the output is not read and can contain any uninitialized data (including
+        Nan numbers).
     gradDesc : cudnnFilterDescriptor
         Handle to a previously initialized filter descriptor.
     gradData : void_p
         Data pointer to GPU memory associated with the filter descriptor
         gradDesc that carries the result.
-    accumulate : cudnnAccumulateResult
-        Enumerant that specifies whether the convolution accumulates with or
-        overwrites the output tensor.
     """
 
-    status = _libcudnn.cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc,
-                                                      diffData, convDesc, gradDesc,
-                                                      gradData, accumulate)
+    status = _libcudnn.cudnnConvolutionBackwardFilter(handle, alpha, srcDesc, srcData, diffDesc,
+                                                      diffData, convDesc, beta, gradDesc, gradData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnConvolutionBackwardData.restype = int
@@ -1108,8 +1138,8 @@ _libcudnn.cudnnConvolutionBackwardData.argtypes = [ctypes.c_void_p, ctypes.c_voi
                                                    ctypes.c_void_p, ctypes.c_void_p,
                                                    ctypes.c_void_p, ctypes.c_void_p,
                                                    ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionBackwardData(handle, filterDesc, filterData, diffDesc, diffData, convDesc,
-                                 gradDesc, gradData, accumulate):
+def cudnnConvolutionBackwardData(handle, alpha, filterDesc, filterData, diffDesc, diffData, convDesc,
+                                 beta, gradDesc, gradData):
     """"
     Compute the gradients wrt the data.
 
@@ -1119,22 +1149,35 @@ def cudnnConvolutionBackwardData(handle, filterDesc, filterData, diffDesc, diffD
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
     filterDesc : cudnnFilterDescriptor
         Handle to a previously initialized filter descriptor.
     filterData : void_p
         Data pointer to GPU memory associated with the filter descriptor
         filterDesc.
-    diffDesc : Handle to the previously initialized input differential tensor descriptor.
-    diffData,
-    convDesc,
-    gradDesc,
-    gradData,
-    accumulate
+    diffDesc : cudnnTensorDescriptor
+        Handle to the previously initialized input differential tensor descriptor.
+    diffData : void_p
+        Data pointer to GPU memory associated with the input differential tensor
+        descriptor diffDesc.
+    convDesc : cudnnConvolutionDescriptor
+        Previously initialized convolution descriptor.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the convolution gradient. Note that if beta is zero,
+        the output is not read and can contain any uninitialized data (including
+        Nan numbers).
+    gradDesc : cudnnFilterDescriptor
+        Handle to a previously initialized filter descriptor.
+    gradData : void_p
+        Data pointer to GPU memory associated with the filter descriptor
+        gradDesc that carries the result.
     """
 
-    status = _libcudnn.cudnnConvolutionBackwardData(handle, filterDesc, filterData, diffDesc,
-                                                    diffData, convDesc, gradDesc,
-                                                    gradData, accumulate)
+    status = _libcudnn.cudnnConvolutionBackwardData(handle, alpha, filterDesc, filterData, diffDesc,
+                                                    diffData, convDesc, beta, gradDesc,
+                                                    gradData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnSoftmaxForward.restype = int
