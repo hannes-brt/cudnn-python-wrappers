@@ -558,14 +558,14 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
         Handle to a cuDNN context.
     mode : cudnnAddMode
         Addition mode that describes how the addition is performed
-    alpha : c_float
+    alpha : float
         Scalar factor to be applied to every data element of the bias tensor before it is added
         to the output tensor.
     biasDesc : cudnnTensorDescriptor
         Handle to a previoulsy initialized tensor descriptor.
     biasData : void_p
         Pointer to data of the tensor described by biasDesc.
-    beta: c_float
+    beta: float
         Scaling factor which is applied on every element of the output tensor prior to adding
         the result of the operation. Note that if beta is zero, the output is not read and can
         contain any uninitialized data (including Nan numbers).
@@ -595,7 +595,7 @@ def cudnnSetTensor(handle, srcDesc, srcData, alpha):
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Pointer to data of the tensor described by srcDesc descriptor.
-    alpha : c_float
+    alpha : float
         Value that all elements of the tensor will be set to.
     """
 
@@ -619,7 +619,7 @@ def cudnnScaleTensor(handle, srcDesc, srcData, alpha):
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Pointer to data of the tensor described by srcDesc descriptor.
-    alpha : c_float
+    alpha : float
         Value that all elements of the tensor will be scaled with.
     """
 
