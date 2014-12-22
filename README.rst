@@ -44,6 +44,7 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     data_type = libcudnn.cudnnDataType['CUDNN_DATA_FLOAT']
     convolution_mode = libcudnn.cudnnConvolutionMode['CUDNN_CROSS_CORRELATION']
     convolution_fwd_pref = libcudnn.cudnnConvolutionFwdPreference['CUDNN_CONVOLUTION_FWD_NO_WORKSPACE']
+    algo = libcudnn.cudnnConvolutionFwdAlgo['CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM']
 
     n_input = 100
     filters_in = 10
@@ -58,6 +59,8 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     horizontal_stride = 1
     upscalex = 1
     upscaley = 1
+    alpha = 1.0
+    beta = 1.0
 
     # Input tensor
     X = gpuarray.to_gpu(np.random.rand(n_input, filters_in, height_in, width_in)
@@ -99,9 +102,9 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     Y_data = ctypes.c_void_p(int(Y.gpudata))
 
     # Perform convolution
-    libcudnn.cudnnConvolutionForward(cudnn_context, X_desc, X_data,
-        filters_desc, filters_data, conv_desc,
-        Y_desc, Y_data, accumulate)
+    libcudnn.cudnnConvolutionForward(cudnn_context, alpha, X_desc, X_data,
+        filters_desc, filters_data, conv_desc, algo, None, 0, beta,
+        Y_desc, Y_data)
 
     # Clean up
     libcudnn.cudnnDestroyTensorDescriptor(X_desc)
