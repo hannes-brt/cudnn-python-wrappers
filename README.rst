@@ -70,7 +70,7 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     filters = gpuarray.to_gpu(np.random.rand(filters_out,
         filters_in, height_filter, width_filter).astype(np.float32))
 
-    #Descriptor for input
+    # Descriptor for input
     X_desc = libcudnn.cudnnCreateTensorDescriptor()
     libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type,
         n_input, filters_in, height_filter, width_filter)
