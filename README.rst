@@ -40,7 +40,6 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     cudnn_context = libcudnn.cudnnCreate()
 
     # Set some options and tensor dimensions
-    accumulate = libcudnn.cudnnAccumulateResults['CUDNN_RESULT_NO_ACCUMULATE']
     tensor_format = libcudnn.cudnnTensorFormat['CUDNN_TENSOR_NCHW']
     data_type = libcudnn.cudnnDataType['CUDNN_DATA_FLOAT']
     convolution_mode = libcudnn.cudnnConvolutionMode['CUDNN_CROSS_CORRELATION']
