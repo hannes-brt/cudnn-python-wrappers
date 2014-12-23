@@ -71,7 +71,7 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     #Descriptor for input
     X_desc = libcudnn.cudnnCreateTensor4dDescriptor()
     libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type,
-        n_input, filters_in, height_filter, width_filter)
+        n_input, filters_in, height_in, width_in)
 
     # Filter descriptor
     filters_desc = libcudnn.cudnnCreateFilterDescriptor()
