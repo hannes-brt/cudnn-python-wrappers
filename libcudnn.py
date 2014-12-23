@@ -790,8 +790,8 @@ def cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v, upscalex, upsc
         Upscale the input in x-direction.
     uscaley : int
         Upscale the input in y-direction.
-    mode : int
-        Selects between CUDNN_CONVOLUTION and CUDNN_CROSS_CORRELATION.
+    mode : cudnnConvolutionMode
+        Select between CUDNN_CONVOLUTION or CUDNN_CROSS_CORRELATION.
     """
 
     status = _libcudnn.cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v,
@@ -950,7 +950,8 @@ def cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
 
     status = _libcudnn.cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
                                                convDesc, destDesc, preference,
-                                               memoryLimitInbytes, ctypes.byref(algo))
+                                               ctypes.c_size_t(memoryLimitInbytes),
+                                               ctypes.byref(algo))
     cudnnCheckStatus(status)
 
     return algo
@@ -1049,7 +1050,8 @@ def cudnnConvolutionForward(handle, alpha, srcDesc, srcData, filterDesc, filterD
 
     status = _libcudnn.cudnnConvolutionForward(handle, ctypes.byref(ctypes.c_float(alpha)), srcDesc, srcData,
                                             filterDesc, filterData,
-                                            convDesc, algo, workspace, workSpaceSizeInBytes,
+                                            convDesc, algo, workspace,
+                                            ctypes.c_size_t(workSpaceSizeInBytes),
                                             ctypes.byref(ctypes.c_float(beta)), destDesc, destData)
     cudnnCheckStatus(status)
 
