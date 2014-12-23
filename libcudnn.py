@@ -391,10 +391,10 @@ def cudnnSetTensor4dDescriptorEx(tensorDesc, dataType, n, c, h, w, nStride, cStr
     """"
     Initialize a Tensor descriptor object with strides.
 
-    This function initializes a previously created Tensor descriptor object, similarly to
-    cudnnSetTensor4dDescriptor but with the strides explicitly passed as parameters.
-    This can be used to lay out the tensor in any order or simply to define gaps between
-    dimensions.
+    This function initializes a previously created generic Tensor descriptor object into a
+    4D tensor, similarly to cudnnSetTensor4dDescriptor but with the strides explicitly
+    passed as parameters. This can be used to lay out the 4D tensor in any order or simply to
+    define gaps between dimensions.
 
     Parameters
     ----------
@@ -433,7 +433,7 @@ def cudnnGetTensor4dDescriptor(tensorDesc):
     """"
     Get parameters of a Tensor descriptor object.
 
-    This function queries the parameters of the previouly initialized Tensor descriptor
+    This function queries the parameters of the previouly initialized Tensor4D descriptor
     object.
 
     Parameters
@@ -488,7 +488,7 @@ def cudnnDestroyTensorDescriptor(tensorDesc):
     """"
     Destroy a Tensor descriptor.
 
-    This function destroys a previously created Tensor4D descriptor object.
+    This function destroys a previously created Tensor descriptor object.
 
     Parameters
     ----------
@@ -540,8 +540,8 @@ def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destDa
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnAddTensor.restype = int
-_libcudnn.cudnnAddTensor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_float,
-                                       ctypes.c_void_p, ctypes.c_void_p, ctypes.c_float,
+_libcudnn.cudnnAddTensor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
+                                       ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                        ctypes.c_void_p, ctypes.c_void_p]
 def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, srcDestData):
     """"
@@ -582,8 +582,8 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
 
 _libcudnn.cudnnSetTensor.restype = int
 _libcudnn.cudnnSetTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
-                                             ctypes.c_void_p, ctypes.c_float]
-def cudnnSetTensor(handle, srcDesc, srcData, alpha):
+                                             ctypes.c_void_p, ctypes.c_void_p]
+def cudnnSetTensor(handle, srcDesc, srcData, value):
     """"
     Set all data points of a tensor to a given value : srcDest = alpha.
 
@@ -595,7 +595,7 @@ def cudnnSetTensor(handle, srcDesc, srcData, alpha):
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Pointer to data of the tensor described by srcDesc descriptor.
-    alpha : float
+    value : float
         Value that all elements of the tensor will be set to.
     """
 
@@ -604,7 +604,7 @@ def cudnnSetTensor(handle, srcDesc, srcData, alpha):
 
 _libcudnn.cudnnScaleTensor.restype = int
 _libcudnn.cudnnScaleTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
-                                             ctypes.c_void_p, ctypes.c_float]
+                                             ctypes.c_void_p, ctypes.c_void_p]
 def cudnnScaleTensor(handle, srcDesc, srcData, alpha):
     """"
     This function scales all the elements of a tensor by a give factor.
