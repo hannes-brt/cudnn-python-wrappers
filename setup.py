@@ -3,9 +3,9 @@ from distutils.core import setup
 setup(
     name = 'cudnn-python-wrappers',
     py_modules = ['libcudnn'],
-    version = '1.0',
+    version = '2.0b',
     license = 'MIT',
-    description = 'Python wrappers for the NVIDIA cudnn 6.5 R1 libraries.',
+    description = 'Python wrappers for the NVIDIA cudnn 6.5 R2 libraries.',
     long_description = open('README.rst', 'r').read(),
     author = 'Hannes Bretschneider',
     author_email = 'habretschneider@gmail.com',
