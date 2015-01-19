@@ -19,7 +19,7 @@ faithfully replicates the C API, the user is responsible for
 allocating and deallocating handles to all cuDNN data structures and
 passing references to arrays as pointers. However, cuDNN status codes
 are translated to Python exceptions. The most common application for
-these wrappers will be to be used along `PyCUDA 
+these wrappers will be to be used along `PyCUDA
 <http://mathema.tician.de/software/pycuda/>`__, but they will work
 equally well with other frameworks such as `CUDAMat
 <https://github.com/cudamat/cudamat>`__.
@@ -40,11 +40,11 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     cudnn_context = libcudnn.cudnnCreate()
 
     # Set some options and tensor dimensions
-    accumulate = libcudnn.cudnnAccumulateResults['CUDNN_RESULT_NO_ACCUMULATE']
     tensor_format = libcudnn.cudnnTensorFormat['CUDNN_TENSOR_NCHW']
     data_type = libcudnn.cudnnDataType['CUDNN_DATA_FLOAT']
     convolution_mode = libcudnn.cudnnConvolutionMode['CUDNN_CROSS_CORRELATION']
-    convolution_path = libcudnn.cudnnConvolutionPath['CUDNN_CONVOLUTION_FORWARD']
+    convolution_fwd_pref = libcudnn.cudnnConvolutionFwdPreference['CUDNN_CONVOLUTION_FWD_NO_WORKSPACE']
+    algo = libcudnn.cudnnConvolutionFwdAlgo['CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM']
 
     n_input = 100
     filters_in = 10
@@ -59,6 +59,8 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     horizontal_stride = 1
     upscalex = 1
     upscaley = 1
+    alpha = 1.0
+    beta = 1.0
 
     # Input tensor
     X = gpuarray.to_gpu(np.random.rand(n_input, filters_in, height_in, width_in)
@@ -69,28 +71,28 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
         filters_in, height_filter, width_filter).astype(np.float32))
 
     #Descriptor for input
-    X_desc = libcudnn.cudnnCreateTensor4dDescriptor()
+    X_desc = libcudnn.cudnnCreateTensorDescriptor()
     libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type,
         n_input, filters_in, height_in, width_in)
 
     # Filter descriptor
     filters_desc = libcudnn.cudnnCreateFilterDescriptor()
-    libcudnn.cudnnSetFilterDescriptor(filters_desc, data_type, filters_out,
+    libcudnn.cudnnSetFilter4dDescriptor(filters_desc, data_type, filters_out,
         filters_in, height_filter, width_filter)
 
     # Convolution descriptor
     conv_desc = libcudnn.cudnnCreateConvolutionDescriptor()
-    libcudnn.cudnnSetConvolutionDescriptor(conv_desc, X_desc, filters_desc,
-        pad_h, pad_w, vertical_stride, horizontal_stride, upscalex, upscaley,
+    libcudnn.cudnnSetConvolution2dDescriptor(conv_desc, pad_h, pad_w,
+        vertical_stride, horizontal_stride, upscalex, upscaley,
         convolution_mode)
 
     # Get output dimensions (first two values are n_input and filters_out)
-    _, _, height_output, width_output = libcudnn.cudnnGetOutputTensor4dDim(
-        conv_desc, convolution_path)
+    _, _, height_output, width_output = libcudnn.cudnnGetConvolution2dForwardOutputDim(
+        conv_desc, X_desc, filters_desc)
 
     # Output tensor
     Y = gpuarray.empty((n_input, filters_out, height_output, width_output), np.float32)
-    Y_desc = libcudnn.cudnnCreateTensor4dDescriptor()
+    Y_desc = libcudnn.cudnnCreateTensorDescriptor()
     libcudnn.cudnnSetTensor4dDescriptor(Y_desc, tensor_format, data_type, n_input,
         filters_out, height_output, width_output)
 
@@ -100,13 +102,13 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     Y_data = ctypes.c_void_p(int(Y.gpudata))
 
     # Perform convolution
-    libcudnn.cudnnConvolutionForward(cudnn_context, X_desc, X_data,
-        filters_desc, filters_data, conv_desc,
-        Y_desc, Y_data, accumulate)
+    libcudnn.cudnnConvolutionForward(cudnn_context, alpha, X_desc, X_data,
+        filters_desc, filters_data, conv_desc, algo, None, 0, beta,
+        Y_desc, Y_data)
 
     # Clean up
-    libcudnn.cudnnDestroyTensor4dDescriptor(X_desc)
-    libcudnn.cudnnDestroyTensor4dDescriptor(Y_desc)
+    libcudnn.cudnnDestroyTensorDescriptor(X_desc)
+    libcudnn.cudnnDestroyTensorDescriptor(Y_desc)
     libcudnn.cudnnDestroyFilterDescriptor(filters_desc)
     libcudnn.cudnnDestroyConvolutionDescriptor(conv_desc)
     libcudnn.cudnnDestroy(cudnn_context)
@@ -119,4 +121,3 @@ Install from PyPi with
 ::
 
     pip install cudnn-python-wrappers
-

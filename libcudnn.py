@@ -7,7 +7,9 @@ import ctypes
 import ctypes.util
 
 if sys.platform in ('linux2', 'linux'):
-    _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.6.5', 'libcudnn.so.6.5.18']
+    _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.6.5', 'libcudnn.so.6.5.35']
+elif sys.platform == 'darwin':
+    _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.6.5.dylib']
 elif sys.platform == 'win32':
     _libcudnn_libname_list = ['cudnn64_65.dll']
 else:
@@ -29,35 +31,35 @@ class cudnnError(Exception):
     """cuDNN Error"""
     pass
 
-class cudnnNotInitialized(cudnnError):
+class cudnnStatusNotInitialized(cudnnError):
     """cuDNN library not initialized"""
     pass
 
-class cudnnAllocFailed(cudnnError):
+class cudnnStatusAllocFailed(cudnnError):
     """cuDNN allocation failed"""
     pass
 
-class cudnnBadParam(cudnnError):
+class cudnnStatusBadParam(cudnnError):
     """An incorrect value or parameter was passed to the function"""
     pass
 
-class cudnnInvalidValue(cudnnError):
+class cudnnStatusInvalidValue(cudnnError):
     """Invalid value"""
     pass
 
-class cudnnArchMismatch(cudnnError):
+class cudnnStatusArchMismatch(cudnnError):
     """Function requires an architectural feature absent from the device"""
     pass
 
-class cudnnMappingError(cudnnError):
+class cudnnStatusMappingError(cudnnError):
     """Access to GPU memory space failed"""
     pass
 
-class cudnnExecutionFailed(cudnnError):
+class cudnnStatusExecutionFailed(cudnnError):
     """GPU program failed to execute"""
     pass
 
-class cudnnInternalError(cudnnError):
+class cudnnStatusInternalError(cudnnError):
     """An internal cudnn operation failed"""
     pass
 
@@ -70,14 +72,14 @@ class cudnnStatusLicenseError(cudnnError):
     pass
 
 cudnnExceptions = {
-    1: cudnnNotInitialized,
-    2: cudnnAllocFailed,
-    3: cudnnBadParam,
-    4: cudnnInternalError,
-    5: cudnnInvalidValue,
-    6: cudnnArchMismatch,
-    7: cudnnMappingError,
-    8: cudnnExecutionFailed,
+    1: cudnnStatusNotInitialized,
+    2: cudnnStatusAllocFailed,
+    3: cudnnStatusBadParam,
+    4: cudnnStatusInternalError,
+    5: cudnnStatusInvalidValue,
+    6: cudnnStatusArchMismatch,
+    7: cudnnStatusMappingError,
+    8: cudnnStatusExecutionFailed,
     9: cudnnStatusNotSupported,
     10: cudnnStatusLicenseError
 }
@@ -114,7 +116,7 @@ cudnnDataType = {
                             # ( double ).
 }
 
-# cudnnAddMode_t is an enumerated type used by cudnnAddTensor4d() to specify how
+# cudnnAddMode_t is an enumerated type used by cudnnAddTensor() to specify how
 # a bias tensor is added to an input/output tensor.
 cudnnAddMode = {
    'CUDNN_ADD_IMAGE': 0,
@@ -145,39 +147,49 @@ cudnnAddMode = {
 # mathematically to a convolution or to a cross-correlation. (A cross-correlation is
 # equivalent to a convolution with its filter rotated by 180 degrees.)
 cudnnConvolutionMode = {
-    'CUDNN_CONVOLUTION': 0,
-    'CUDNN_CROSS_CORRELATION': 1
+    'CUDNN_CONVOLUTION': 0, # In this mode, a convolution operation will be done
+                            # when applying the filter to the images.
+    'CUDNN_CROSS_CORRELATION': 1 # In this mode, a cross-correlation operation will
+                            # be done when applying the filter to the images.
 }
 
-# cudnnConvolutionPath_t is an enumerated type used by the helper routine
-# cudnnGetOutputTensor4dDim() to select the results to output.
-cudnnConvolutionPath = {
-    'CUDNN_CONVOLUTION_FORWARD': 0, # cudnnGetOutputTensor4dDim() will return
-                                    # dimensions related to the output tensor of the
-                                    # forward convolution.
-    'CUDNN_CONVOLUTION_WEIGHT_GRAD': 1, # cudnnGetOutputTensor4dDim() will return the
-                                    # dimensions of the output filter produced while
-                                    # computing the gradients, which is part of the
-                                    # backward convolution.
-    'CUDNN_CONVOLUTION_DATA_PATH': 2 # cudnnGetOutputTensor4dDim() will return the
-                                    # dimensions of the output tensor produced while
-                                    # computing the gradients, which is part of the
-                                    # backward convolution.
+# cudnnConvolutionFwdPreference_t is an enumerated type used by
+# cudnnGetConvolutionForwardAlgorithm() to help the choice of the algorithm used for the
+# forward convolution.
+cudnnConvolutionFwdPreference = {
+    'CUDNN_CONVOLUTION_FWD_NO_WORKSPACE':  0, # In this configuration, the routine
+                        # cudnnGetConvolutionForwardAlgorithm() is guaranteed to return
+                        # an algorithm that does not require any extra workspace to be
+                        # provided by the user.
+    'CUDNN_CONVOLUTION_FWD_PREFER_FASTEST': 1, # In this configuration, the routine
+                        # cudnnGetConvolutionForwardAlgorithm() will return the fastest
+                        # algorithm regardless how much workspace is needed to execute it.
+    'CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT': 2 # In this configuration, the routine
+                        # cudnnGetConvolutionForwardAlgorithm() will return the fastest
+                        # algorithm that fits within the memory limit that the user provided.
 }
 
-# cudnnAccumulateResult_t is an enumerated type used by
-# cudnnConvolutionForward() , cudnnConvolutionBackwardFilter() and
-# cudnnConvolutionBackwardData() to specify whether those routines accumulate
-# their results with the output tensor or simply write them to it, overwriting the previous
-# value.
-cudnnAccumulateResults = {
-    'CUDNN_RESULT_ACCUMULATE': 0,   # The results are accumulated with (added to the
-                                    # previous value of) the output tensor.
-    'CUDNN_RESULT_NO_ACCUMULATE': 1 # The results overwrite the output tensor.
+# cudnnConvolutionFwdAlgo_t is an enumerated type that exposes the different algorithm
+# available to execute the forward convolution operation.
+cudnnConvolutionFwdAlgo = {
+    'CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM': 0, # This algorithm expresses the convolution
+                        # as a matrix product without actually explicitly forming the matrix
+                        # that holds the input tensor data.
+    'CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM': 1, # This algorithm expresses the convolution
+                        # as a matrix product without actually explicitly forming the matrix
+                        # that holds the input tensor data, but still needs some memory
+                        # workspace to precompute some indices in order to facilitate the
+                        # implicit construction of the matrix that holds the input tensor data.
+    'CUDNN_CONVOLUTION_FWD_ALGO_GEMM': 2, # This algorithm expresses the convolution as an
+                        # explicit matrix product. A significant memory workspace is needed to
+                        # store the matrix that holds the input tensor data.
+    'CUDNN_CONVOLUTION_FWD_ALGO_DIRECT': 3 # This algorithm expresses the convolution as a
+                        # direct convolution (e.g without implicitly or explicitly doing a
+                        # matrix multiplication).
 }
 
 # cudnnSoftmaxAlgorithm_t is used to select an implementation of the softmax
-# function used in cudnnSoftmaxForward() and cudnnSoftmaxBackward() .
+# function used in cudnnSoftmaxForward() and cudnnSoftmaxBackward().
 cudnnSoftmaxAlgorithm = {
     'CUDNN_SOFTMAX_FAST': 0,    # This implementation applies the straightforward
                                 # softmax operation.
@@ -232,6 +244,15 @@ def cudnnCheckStatus(status):
             raise cudnnError
 
 # Helper functions
+
+_libcudnn.cudnnGetVersion.restype =  ctypes.c_size_t
+_libcudnn.cudnnGetVersion.argtypes = []
+def cudnnGetVersion():
+    """
+    Get cuDNN Version.
+    """
+    return _libcudnn.cudnnGetVersion()
+
 _libcudnn.cudnnCreate.restype = int
 _libcudnn.cudnnCreate.argtypes = [ctypes.c_void_p]
 def cudnnCreate():
@@ -308,24 +329,24 @@ def cudnnGetStream(handle):
     cudnnCheckStatus(status)
     return id.value
 
-_libcudnn.cudnnCreateTensor4dDescriptor.restype = int
-_libcudnn.cudnnCreateTensor4dDescriptor.argtypes = [ctypes.c_void_p]
-def cudnnCreateTensor4dDescriptor():
+_libcudnn.cudnnCreateTensorDescriptor.restype = int
+_libcudnn.cudnnCreateTensorDescriptor.argtypes = [ctypes.c_void_p]
+def cudnnCreateTensorDescriptor():
     """
-    Create a Tensor4D descriptor object.
+    Create a Tensor descriptor object.
 
-    Allocates a cudnnTensor4dDescriptor_t structure and returns a pointer to it.
+    Allocates a cudnnTensorDescriptor_t structure and returns a pointer to it.
 
     Returns
     -------
-    tensor4d_descriptor : int
-        Tensor4d descriptor.
+    tensor_descriptor : int
+        Tensor descriptor.
     """
 
-    tensor4d = ctypes.c_void_p()
-    status = _libcudnn.cudnnCreateTensor4dDescriptor(ctypes.byref(tensor4d))
+    tensor = ctypes.c_void_p()
+    status = _libcudnn.cudnnCreateTensorDescriptor(ctypes.byref(tensor))
     cudnnCheckStatus(status)
-    return tensor4d.value
+    return tensor.value
 
 _libcudnn.cudnnSetTensor4dDescriptor.restype = int
 _libcudnn.cudnnSetTensor4dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int,
@@ -342,7 +363,7 @@ def cudnnSetTensor4dDescriptor(tensorDesc, format, dataType, n, c, h, w):
 
     Parameters
     ----------
-    tensorDesc : cudnnTensor4dDescriptor
+    tensorDesc : cudnnTensorDescriptor
         Handle to a previously created tensor descriptor.
     format : cudnnTensorFormat
         Type of format.
@@ -368,16 +389,16 @@ _libcudnn.cudnnSetTensor4dDescriptorEx.argtypes = [ctypes.c_void_p, ctypes.c_int
                                                    ctypes.c_int, ctypes.c_int, ]
 def cudnnSetTensor4dDescriptorEx(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride):
     """"
-    Initialize a Tensor4D descriptor object with strides.
-    
-    This function initializes a previously created Tensor4D descriptor object, similarly to
-    cudnnSetTensor4dDescriptor but with the strides explicitly passed as parameters.
-    This can be used to lay out the 4D tensor in any order or simply to define gaps between
-    dimensions.
-    
+    Initialize a Tensor descriptor object with strides.
+
+    This function initializes a previously created generic Tensor descriptor object into a
+    4D tensor, similarly to cudnnSetTensor4dDescriptor but with the strides explicitly
+    passed as parameters. This can be used to lay out the 4D tensor in any order or simply to
+    define gaps between dimensions.
+
     Parameters
     ----------
-    tensorDesc : cudnnTensor4dDescriptor_t
+    tensorDesc : cudnnTensorDescriptor_t
         Handle to a previously created tensor descriptor.
     dataType : cudnnDataType
         Data type.
@@ -398,7 +419,7 @@ def cudnnSetTensor4dDescriptorEx(tensorDesc, dataType, n, c, h, w, nStride, cStr
     wStride : int
         Stride between two consecutive columns.
     """
-    
+
     status = _libcudnn.cudnnSetTensor4dDescriptorEx(tensorDesc, dataType, n, c, h, w,
                                                     nStride, cStride, hStride, wStride)
     cudnnCheckStatus(status)
@@ -410,14 +431,14 @@ _libcudnn.cudnnGetTensor4dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_
                                                  ctypes.c_void_p, ]
 def cudnnGetTensor4dDescriptor(tensorDesc):
     """"
-    Get parameters of a Tensor4D descriptor object.
-    
+    Get parameters of a Tensor descriptor object.
+
     This function queries the parameters of the previouly initialized Tensor4D descriptor
     object.
-    
+
     Parameters
     ----------
-    tensorDesc : cudnnTensor4dDescriptor
+    tensorDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
 
     Returns
@@ -457,69 +478,79 @@ def cudnnGetTensor4dDescriptor(tensorDesc):
                                                   ctypes.byref(nStride), ctypes.byref(cStride),
                                                   ctypes.byref(hStride), ctypes.byref(wStride))
     cudnnCheckStatus(status)
-    
+
     return dataType.value, n.value, c.value, h.value, w.value, nStride.value, cStride.value, \
         hStride.value, wStride.value
 
-_libcudnn.cudnnDestroyTensor4dDescriptor.restype = int
-_libcudnn.cudnnDestroyTensor4dDescriptor.argtypes = [ctypes.c_void_p]
-def cudnnDestroyTensor4dDescriptor(tensorDesc):
+_libcudnn.cudnnDestroyTensorDescriptor.restype = int
+_libcudnn.cudnnDestroyTensorDescriptor.argtypes = [ctypes.c_void_p]
+def cudnnDestroyTensorDescriptor(tensorDesc):
     """"
-    Destroy a Tensor 4D descriptor.
-    
-    This function destroys a previously created Tensor4D descriptor object.
-    
+    Destroy a Tensor descriptor.
+
+    This function destroys a previously created Tensor descriptor object.
+
     Parameters
     ----------
-    tensorDesc : cudnnTensor4dDescriptor
-        Previously allocated Tensor4D descriptor object.
+    tensorDesc : cudnnTensorDescriptor
+        Previously allocated Tensor descriptor object.
     """
-    
-    status = _libcudnn.cudnnDestroyTensor4dDescriptor(tensorDesc)
+
+    status = _libcudnn.cudnnDestroyTensorDescriptor(tensorDesc)
     cudnnCheckStatus(status)
 
-_libcudnn.cudnnTransformTensor4d.restype = int
-_libcudnn.cudnnTransformTensor4d.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+_libcudnn.cudnnTransformTensor.restype = int
+_libcudnn.cudnnTransformTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                             ctypes.c_void_p, ctypes.c_void_p,
                                              ctypes.c_void_p, ctypes.c_void_p]
-def cudnnTransformTensor4d(handle, srcDesc, srcData, destDesc, destData):
+def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destData):
     """"
-    Copy data from one tensor to another.
-    
-    This function copies the data from one tensor to another tensor with a different
+    Tensor layout conversion helper (dest = alpha * src + beta * dest).
+
+    This function copies the scaled data from one tensor to another tensor with a different
     layout. Those descriptors need to have the same dimensions but not necessarily the
     same strides. The input and output tensors must not overlap in any way (i.e., tensors
     cannot be transformed in place). This function can be used to convert a tensor with an
     unsupported format to a supported one.
-    
+
     Parameters
     ----------
     handle : cudnnHandle
         cuDNN context.
-    srcDesc : cudnnTensor4dDescriptor
+    alpha : float
+        Scalar factor to be applied to every element of the input tensor before it is added
+        to the output tensor.
+    srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Pointer to data of the tensor described by srcDesc descriptor.
-    destDesc : cudnnTensor4dDescriptor
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior to adding
+        the result of the operation. Note that if beta is zero, the output is not read and can
+        contain any uninitialized data (including Nan numbers).
+    destDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     destData : void_p
         Pointer to data of the tensor described by destDesc descriptor.
     """
-    
-    status = _libcudnn.cudnnTransformTensor4d(handle, srcDesc, srcData, destDesc, destData)
+
+    status = _libcudnn.cudnnTransformTensor(handle, ctypes.byref(ctypes.c_float(alpha)), srcDesc,
+                                                srcData, ctypes.byref(ctypes.c_float(beta)),
+                                                destDesc, destData)
     cudnnCheckStatus(status)
 
-_libcudnn.cudnnAddTensor4d.restype = int
-_libcudnn.cudnnAddTensor4d.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
-                                       ctypes.c_void_p, ctypes.c_void_p,
+_libcudnn.cudnnAddTensor.restype = int
+_libcudnn.cudnnAddTensor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
+                                       ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                        ctypes.c_void_p, ctypes.c_void_p]
-def cudnnAddTensor4d(handle, mode, alpha, biasDesc, biasData, srcDestDesc, srcDestData):
+def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, srcDestData):
     """"
-    Add two tensors.
+    Tensor Bias addition : srcDest = alpha * bias + beta * srcDestDesc.
 
     This function adds the scaled values of one tensor to another tensor. The mode parameter
     can be used to select different ways of performing the scaled addition. The amount
     of data described by the biasDesc descriptor must match exactly the amount of data
-    needed to perform the addition. Therefore, the following conditions must be met:
+    needed to perform the addition.
 
     Parameters
     ----------
@@ -527,23 +558,72 @@ def cudnnAddTensor4d(handle, mode, alpha, biasDesc, biasData, srcDestDesc, srcDe
         Handle to a cuDNN context.
     mode : cudnnAddMode
         Addition mode that describes how the addition is performed
-    alpha : void_p
+    alpha : float
         Scalar factor to be applied to every data element of the bias tensor before it is added
         to the output tensor.
-    biasDesc : cudnnTensor4dDescriptor
+    biasDesc : cudnnTensorDescriptor
         Handle to a previoulsy initialized tensor descriptor.
     biasData : void_p
         Pointer to data of the tensor described by biasDesc.
-    srcDestDesc : cudnnTensor4dDescriptor
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior to adding
+        the result of the operation. Note that if beta is zero, the output is not read and can
+        contain any uninitialized data (including Nan numbers).
+    srcDestDesc : cudnnTensorDescriptor
         Handle to a previoulsy initialized tensor descriptor.
     srcDestData : void_p
         Pointer to data of the tensor described by srcDestDesc.
     """
 
-    status = _libcudnn.cudnnAddTensor4d(handle, mode, alpha, biasDesc,
-                                        biasData,
-                                        srcDestDesc,
-                                        srcDestData)
+    status = _libcudnn.cudnnAddTensor(handle, mode, ctypes.byref(ctypes.c_float(alpha)), biasDesc,
+                                        biasData, ctypes.byref(ctypes.c_float(beta)),
+                                        srcDestDesc, srcDestData)
+    cudnnCheckStatus(status)
+
+_libcudnn.cudnnSetTensor.restype = int
+_libcudnn.cudnnSetTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                             ctypes.c_void_p, ctypes.c_void_p]
+def cudnnSetTensor(handle, srcDesc, srcData, value):
+    """"
+    Set all data points of a tensor to a given value : srcDest = alpha.
+
+    Parameters
+    ----------
+    handle : cudnnHandle
+        Handle to a previously created cuDNN context.
+    srcDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    srcData : void_p
+        Pointer to data of the tensor described by srcDesc descriptor.
+    value : float
+        Value that all elements of the tensor will be set to.
+    """
+
+    status = _libcudnn.cudnnSetTensor(handle, srcDesc, srcData, ctypes.byref(ctypes.c_float(alpha)))
+    cudnnCheckStatus(status)
+
+_libcudnn.cudnnScaleTensor.restype = int
+_libcudnn.cudnnScaleTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                             ctypes.c_void_p, ctypes.c_void_p]
+def cudnnScaleTensor(handle, srcDesc, srcData, alpha):
+    """"
+    This function scales all the elements of a tensor by a give factor.
+
+    Set all data points of a tensor to scaled value : srcDest = alpha * srcDest.
+
+    Parameters
+    ----------
+    handle : cudnnHandle
+        Handle to a previously created cuDNN context.
+    srcDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    srcData : void_p
+        Pointer to data of the tensor described by srcDesc descriptor.
+    alpha : float
+        Value that all elements of the tensor will be scaled with.
+    """
+
+    status = _libcudnn.cudnnScaleTensor(handle, srcDesc, srcData, ctypes.byref(ctypes.c_float(alpha)))
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnCreateFilterDescriptor.restype = int
@@ -551,14 +631,13 @@ _libcudnn.cudnnCreateFilterDescriptor.argtypes = [ctypes.c_void_p]
 def cudnnCreateFilterDescriptor():
     """"
     Create a filter descriptor.
-    
-    This function creates a filter descriptor object by allocating the memory needed to hold
-its opaque structure.
-    
+
+    This function creates a filter descriptor object by allocating the memory needed
+    to hold its opaque structure.
+
     Parameters
     ----------
 
-    
     Returns
     -------
     filterDesc : cudnnFilterDescriptor
@@ -568,19 +647,19 @@ its opaque structure.
     filterDesc = ctypes.c_void_p()
     status = _libcudnn.cudnnCreateFilterDescriptor(ctypes.byref(filterDesc))
     cudnnCheckStatus(status)
-    
+
     return filterDesc.value
 
-_libcudnn.cudnnSetFilterDescriptor.restype = int
-_libcudnn.cudnnSetFilterDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int,
+_libcudnn.cudnnSetFilter4dDescriptor.restype = int
+_libcudnn.cudnnSetFilter4dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int,
                                                ctypes.c_int, ctypes.c_int, ctypes.c_int]
-def cudnnSetFilterDescriptor(filterDesc, dataType, k, c, h, w):
+def cudnnSetFilter4dDescriptor(filterDesc, dataType, k, c, h, w):
     """"
     Initialize a filter descriptor.
-    
-    This function initializes a previously created filter descriptor object. Filters layout must
-be contiguous in memory.
-    
+
+    This function initializes a previously created filter descriptor object into a 4D filter.
+    Filters layout must be contiguous in memory.
+
     Parameters
     ----------
     filterDesc : cudnnFilterDescriptor
@@ -596,24 +675,24 @@ be contiguous in memory.
     w : int
         Width of each filter.
     """
-    
-    status = _libcudnn.cudnnSetFilterDescriptor(filterDesc, dataType, k, c, h, w)
+
+    status = _libcudnn.cudnnSetFilter4dDescriptor(filterDesc, dataType, k, c, h, w)
     cudnnCheckStatus(status)
 
-_libcudnn.cudnnGetFilterDescriptor.restype = int
-_libcudnn.cudnnGetFilterDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+_libcudnn.cudnnGetFilter4dDescriptor.restype = int
+_libcudnn.cudnnGetFilter4dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnGetFilterDescriptor(filterDesc):
+def cudnnGetFilter4dDescriptor(filterDesc):
     """"
     Get parameters of filter descriptor.
-    
+
     This function queries the parameters of the previouly initialized filter descriptor object.
-    
+
     Parameters
     ----------
     filterDesc : cudnnFilterDescriptor
         Handle to a previously created filter descriptor.
-    
+
     Returns
     -------
     dataType : cudnnDataType
@@ -634,11 +713,11 @@ def cudnnGetFilterDescriptor(filterDesc):
     h = ctypes.c_int()
     w = ctypes.c_int()
 
-    status = _libcudnn.cudnnGetFilterDescriptor(filterDesc, ctypes.byref(dataType),
+    status = _libcudnn.cudnnGetFilter4dDescriptor(filterDesc, ctypes.byref(dataType),
                                                 ctypes.byref(k), ctypes.byref(c),
                                                 ctypes.byref(h), ctypes.byref(w))
     cudnnCheckStatus(status)
-    
+
     return dataType.value, k.value, c.value, h.value, w.value
 
 _libcudnn.cudnnDestroyFilterDescriptor.restype = int
@@ -646,14 +725,14 @@ _libcudnn.cudnnDestroyFilterDescriptor.argtypes = [ctypes.c_void_p]
 def cudnnDestroyFilterDescriptor(filterDesc):
     """"
     Destroy filter descriptor.
-    
+
     This function destroys a previously created Tensor4D descriptor object.
-    
+
     Parameters
     ----------
     filterDesc : cudnnFilterDescriptor
     """
-    
+
     status = _libcudnn.cudnnDestroyFilterDescriptor(filterDesc)
     cudnnCheckStatus(status)
 
@@ -662,45 +741,41 @@ _libcudnn.cudnnCreateConvolutionDescriptor.argtypes = [ctypes.c_void_p]
 def cudnnCreateConvolutionDescriptor():
     """"
     Create a convolution descriptor.
-    
+
     This function creates a convolution descriptor object by allocating the memory needed to
     hold its opaque structure.
-    
+
     Returns
     -------
     convDesc : cudnnConvolutionDescriptor
-        Handle to newly allocated convolution descriptor. 
+        Handle to newly allocated convolution descriptor.
     """
-    
+
     convDesc = ctypes.c_void_p()
-    
+
     status = _libcudnn.cudnnCreateConvolutionDescriptor(ctypes.byref(convDesc))
     cudnnCheckStatus(status)
-    
+
     return convDesc.value
 
-_libcudnn.cudnnSetConvolutionDescriptor.restype = int
-_libcudnn.cudnnSetConvolutionDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int,
-                                                    ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                    ctypes.c_int]
-def cudnnSetConvolutionDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h, pad_w, u, v, upscalex, upscaley, mode):
+_libcudnn.cudnnSetConvolution2dDescriptor.restype = int
+_libcudnn.cudnnSetConvolution2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int,
+                                                    ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                                    ctypes.c_int, ctypes.c_int]
+def cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v, upscalex, upscaley, mode):
     """"
     Initialize a convolution descriptor.
-    
-    This function initializes a previously created convolution descriptor object, according
-    to an input tensor descriptor and a filter descriptor passed as parameter. This function
-    assumes that the tensor and filter descriptors corresponds to the formard convolution
-    path and checks if their settings are valid. That same convolution descriptor can be
-    reused in the backward path provided it corresponds to the same layer.
-    
+
+    This function initializes a previously created convolution descriptor object into a 2D
+    correlation. This function assumes that the tensor and filter descriptors corresponds
+    to the formard convolution path and checks if their settings are valid. That same
+    convolution descriptor can be reused in the backward path provided it corresponds to
+    the same layer.
+
     Parameters
     ----------
     convDesc : cudnnConvolutionDescriptor
         Handle to a previously created convolution descriptor.
-    inputTensorDesc : cudnnTensor4dDescriptor
-        Input tensor descriptor used for that layer on the forward path.
-    filterDesc : cudnnFilterDescriptor
-        Filter descriptor used for that layer on the forward path.
     pad_h : int
         zero-padding height: number of rows of zeros implicitly concatenated
         onto the top and onto the bottom of input images.
@@ -715,45 +790,29 @@ def cudnnSetConvolutionDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h, 
         Upscale the input in x-direction.
     uscaley : int
         Upscale the input in y-direction.
-    mode : int
-        Selects between CUDNN_CONVOLUTION and CUDNN_CROSS_CORRELATION
+    mode : cudnnConvolutionMode
+        Select between CUDNN_CONVOLUTION or CUDNN_CROSS_CORRELATION.
     """
-    
-    status = _libcudnn.cudnnSetConvolutionDescriptor(convDesc, inputTensorDesc, filterDesc, pad_h,
-                                                     pad_w, u, v, upscalex, upscaley, mode)
+
+    status = _libcudnn.cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v,
+                                                        upscalex, upscaley, mode)
     cudnnCheckStatus(status)
 
-_libcudnn.cudnnSetConvolutionDescriptorEx.restype = int
-_libcudnn.cudnnSetConvolutionDescriptorEx.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                      ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                      ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                      ctypes.c_int, ctypes.c_int, ctypes.c_int]
-def cudnnSetConvolutionDescriptorEx(convDesc, n, c, h, w, k, r, s, pad_h, pad_w, u, v, upscalex, upscaley, mode):
+_libcudnn.cudnnGetConvolution2dDescriptor.restype = int
+_libcudnn.cudnnGetConvolution2dDescriptor.argtypes = [ctypes.c_void_p]
+def cudnnGetConvolution2dDescriptor(convDesc):
     """"
-    Initialize a convolution descriptor explicitely.
-    
-    This function initializes a previously created convolution descriptor object. It is similar
-    to cudnnSetConvolutionDescriptor but every parameter of the convolution must be
-    passed explicitly.
-    
+    Get a convolution descriptor.
+
+    This function queries a previously initialized 2D convolution descriptor object.
+
     Parameters
     ----------
     convDesc : cudnnConvolutionDescriptor
         Handle to a previously created convolution descriptor.
-    n : int
-        Number of images.
-    c : int
-        Number of input feature maps.
-    h : int
-        Height of each input feature map.
-    w : int
-        Width of each input feature map.
-    k : int
-        Number of output feature maps.
-    r : int
-        Height of each filter.
-    s : int
-        Width of each filter.
+
+    Returns
+    -------
     pad_h : int
         zero-padding height: number of rows of zeros implicitly concatenated onto
         the top and onto the bottom of input images.
@@ -769,31 +828,46 @@ def cudnnSetConvolutionDescriptorEx(convDesc, n, c, h, w, k, r, s, pad_h, pad_w,
     upscaley : int
         Upscale the input in y-direction.
     mode : cudnnConvolutionMode
-        Selects between CUDNN_CONVOLUTION and CUDNN_CROSS_CORRELATION.
+        Either CUDNN_CONVOLUTION or CUDNN_CROSS_CORRELATION.
     """
-    
-    status = _libcudnn.cudnnSetConvolutionDescriptorEx(convDesc, n, c, h, w, k, r, s, pad_h,
-                                                       pad_w, u, v, upscalex, upscaley, mode)
+    pad_h = ctypes.c_int()
+    pad_w = ctypes.c_int()
+    u = ctypes.c_int()
+    v = ctypes.c_int()
+    upscalex = ctypes.c_int()
+    upscaley = ctypes.c_int()
+    mode = ctypes.c_int()
+
+    status = _libcudnn.cudnnGetConvolution2dDescriptor(convDesc, ctypes.byref(pad_h),
+                                                    ctypes.byref(pad_w), ctypes.byref(u),
+                                                    ctypes.byref(v), ctypes.byref(upscalex),
+                                                    ctypes.byref(upscaley),
+                                                    ctypes.byref(mode))
+
     cudnnCheckStatus(status)
 
-_libcudnn.cudnnGetOutputTensor4dDim.restype = int
-_libcudnn.cudnnGetOutputTensor4dDim.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
-                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnGetOutputTensor4dDim(convDesc, path):
+    return pad_h.value, pad_w.value, u.value, v.value, upscalex.value, upscaley.value, mode.value
+
+_libcudnn.cudnnGetConvolution2dForwardOutputDim.restype = int
+_libcudnn.cudnnGetConvolution2dForwardOutputDim.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+def cudnnGetConvolution2dForwardOutputDim(convDesc, inputTensorDesc, filterDesc):
     """"
-    Return the dimensions of a convolution's output.
-    
-    This function returns the dimensions of a convolution's output, given the convolution
-descriptor and the direction of the convolution. This function can help to setup the
-output tensor and allocate the proper amount of memory prior to launch the actual
-convolution.
-    
+    Return the dimensions of the output tensor given a convolution descriptor.
+
+    This function returns the dimensions of the resulting 4D tensor of a 2D
+    convolution, given the convolution descriptor, the input tensor descriptor and
+    the filter descriptor. This function can help to setup the output tensor and allocate
+    the proper amount of memory prior to launching the actual convolution.
+
     Parameters
     ----------
     convDesc : cudnnConvolutionDescriptor
         Handle to a previously created convolution descriptor.
-    path : cudnnConvolutionPath
-        Enumerant to specify the direction of the convolution.
+    inputTensorDesc: cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    filterDesc: cudnnFilterDescriptor
+        Handle to a previously initialized filter descriptor.
 
     Returns
     -------
@@ -811,11 +885,12 @@ convolution.
     h = ctypes.c_int()
     w = ctypes.c_int()
 
-    status = _libcudnn.cudnnGetOutputTensor4dDim(convDesc, path, ctypes.byref(n),
+    status = _libcudnn.cudnnGetConvolution2dForwardOutputDim(convDesc, inputTensorDesc,
+                                                 filterDesc, ctypes.byref(n),
                                                  ctypes.byref(c), ctypes.byref(h),
                                                  ctypes.byref(w))
     cudnnCheckStatus(status)
-    
+
     return n.value, c.value, h.value, w.value
 
 _libcudnn.cudnnDestroyConvolutionDescriptor.restype = int
@@ -823,35 +898,129 @@ _libcudnn.cudnnDestroyConvolutionDescriptor.argtypes = [ctypes.c_void_p]
 def cudnnDestroyConvolutionDescriptor(convDesc):
     """"
     Destroy a convolution descriptor.
-    
+
     This function destroys a previously created convolution descriptor object.
-    
+
     Parameters
     ----------
     convDesc : int
         Previously created convolution descriptor.
     """
-    
+
     status = _libcudnn.cudnnDestroyConvolutionDescriptor(convDesc)
     cudnnCheckStatus(status)
 
-_libcudnn.cudnnConvolutionForward.restype = int
-_libcudnn.cudnnConvolutionForward.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
-                            convDesc, destDesc, destData, accumulate):
+_libcudnn.cudnnGetConvolutionForwardAlgorithm.restype = int
+_libcudnn.cudnnGetConvolutionForwardAlgorithm.argtypes = [ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p,
+                                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int,
+                                              ctypes.c_size_t, ctypes.c_void_p]
+def cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
+                            convDesc, destDesc, preference, memoryLimitInbytes):
     """"
-    Perform forward convolution.
-
-    This function executes convolutions or cross-correlations over src using the specified
-    filters , returning results in dest.
+    This function returns the best algorithm to choose for the forward convolution
+    depending on the critera expressed in the cudnnConvolutionFwdPreference_t enumerant.
 
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
-    srcDesc : cudnnTensor4dDescriptor
+    srcDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    filterDesc : cudnnFilterDescriptor
+        Handle to a previously initialized filter descriptor.
+    convDesc : cudnnConvolutionDescriptor
+        Previously initialized convolution descriptor.
+    destDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    preference : cudnnConvolutionFwdPreference
+        Enumerant to express the preference criteria in terms of memory
+        requirement and speed.
+    memoryLimitInbytes: size_t
+        The maximum amount of GPU memory the user is willing to use as a workspace
+        when preference is CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT.
+
+    Returns
+    -------
+    algo: cudnnConvolutionFwdAlgo
+        Enumerant that specifies which convolution algorithm should be used to
+        compute the results according to the specified preference.
+    """
+    algo = ctypes.c_int()
+
+    status = _libcudnn.cudnnGetConvolutionForwardAlgorithm(handle, srcDesc, filterDesc,
+                                               convDesc, destDesc, preference,
+                                               ctypes.c_size_t(memoryLimitInbytes),
+                                               ctypes.byref(algo))
+    cudnnCheckStatus(status)
+
+    return algo
+
+_libcudnn.cudnnGetConvolutionForwardWorkspaceSize.restype = int
+_libcudnn.cudnnGetConvolutionForwardWorkspaceSize.argtypes = [ctypes.c_void_p,
+                                            ctypes.c_void_p, ctypes.c_void_p,
+                                            ctypes.c_void_p, ctypes.c_void_p,
+                                            ctypes.c_int, ctypes.c_void_p]
+def cudnnGetConvolutionForwardWorkspaceSize(handle, srcDesc, filterDesc,
+                            convDesc, destDesc, algo):
+    """"
+    This function returns the amount of GPU memory workspace the user needs
+    to allocate to be able to call cudnnConvolutionForward with the specified algorithm.
+
+    Parameters
+    ----------
+    handle : cudnnHandle
+        Handle to a previously created cuDNN context.
+    srcDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    filterDesc : cudnnFilterDescriptor
+        Handle to a previously initialized filter descriptor.
+    convDesc : cudnnConvolutionDescriptor
+        Previously initialized convolution descriptor.
+    destDesc : cudnnTensorDescriptor
+        Handle to a previously initialized tensor descriptor.
+    algo : cudnnConvolutionFwdAlgo
+        Enumerant that specifies the chosen convolution algorithm.
+
+    Returns
+    -------
+    sizeInBytes: c_size_t
+        Amount of GPU memory needed as workspace to be able to execute a
+        forward convolution with the sepcified algo.
+    """
+    sizeInBytes = ctypes.c_size_t()
+
+    status = _libcudnn.cudnnGetConvolutionForwardWorkspaceSize(handle, srcDesc, filterDesc,
+                                               convDesc, destDesc, algo,
+                                               ctypes.byref(sizeInBytes))
+    cudnnCheckStatus(status)
+
+    return sizeInBytes
+
+_libcudnn.cudnnConvolutionForward.restype = int
+_libcudnn.cudnnConvolutionForward.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                              ctypes.c_void_p, ctypes.c_int,
+                                              ctypes.c_void_p, ctypes.c_size_t,
+                                              ctypes.c_void_p, ctypes.c_void_p,
+                                              ctypes.c_void_p]
+def cudnnConvolutionForward(handle, alpha, srcDesc, srcData, filterDesc, filterData,
+                            convDesc, algo, workspace, workSpaceSizeInBytes, beta,
+                            destDesc, destData):
+    """"
+    Perform forward convolution. All of the form "output = alpha * Op(inputs) + beta * output".
+
+    This function executes convolutions or cross-correlations over src using the specified
+    filters, returning results in dest. Scaling factors alpha and beta can be used to scale
+    the input tensor and the output tensor respectively.
+
+    Parameters
+    ----------
+    handle : cudnnHandle
+        Handle to a previously created cuDNN context.
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
+    srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor srcDesc.
@@ -861,134 +1030,172 @@ def cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
         Data pointer to GPU memory associated with the filter descriptor filterDesc.
     convDesc : cudnnConvolutionDescriptor
         Previously initialized convolution descriptor.
-    destDesc : cudnnTensor4dDescriptor
+    algo: cudnnConvolutionFwdAlgo
+        Enumerant that specifies which convolution algorithm shoud be used to
+        compute the results.
+    workSpace: void_p
+        Data pointer to GPU memory to a workspace needed to able to execute
+        the specified algorithm. If no workspace is needed for a particular
+        algorithm, that pointer can be nil.
+    workSpaceSizeInBytes: long
+        Specifies the size in bytes of the provided workSpace.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the convolution.
+    destDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the tensor descriptor destDesc.
-    accumulate : cudnnAccumulateResult
-        Enumerant that specifies whether the convolution accumulates with or
-        overwrites the output tensor.
     """
 
-    status = _libcudnn.cudnnConvolutionForward(handle, srcDesc, srcData, filterDesc, filterData,
-                                               convDesc, destDesc, destData, accumulate)
+    status = _libcudnn.cudnnConvolutionForward(handle, ctypes.byref(ctypes.c_float(alpha)), srcDesc, srcData,
+                                            filterDesc, filterData,
+                                            convDesc, algo, workspace,
+                                            ctypes.c_size_t(workSpaceSizeInBytes),
+                                            ctypes.byref(ctypes.c_float(beta)), destDesc, destData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnConvolutionBackwardBias.restype = int
 _libcudnn.cudnnConvolutionBackwardBias.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                                   ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionBackwardBias(handle, srcDesc, srcData, destDesc, destData, accumulate):
+                                                   ctypes.c_void_p, ctypes.c_void_p,
+                                                   ctypes.c_void_p, ctypes.c_void_p]
+def cudnnConvolutionBackwardBias(handle, alpha, srcDesc, srcData, beta, destDesc, destData):
     """"
     Compute the gradient wrt the bias.
-    
+
     This function computes the convolution gradient with respect to the bias, which is the
     sum of every element belonging to the same feature map across all of the images of the
     input tensor. Therefore, the number of elements produced is equal to the number of
     features maps of the input tensor.
-    
+
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
-    srcDesc : cudnnTensor4dDescriptor
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
-        srcDesc .
-    destDesc : cudnnTensor4dDescriptor
+        srcDesc.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the convolution gradient. Note that if beta is zero,
+        the output is not read and can contain any uninitialized data (including
+        Nan numbers).
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDesc.
-    accumulate : cudnnAccumulateResult
-        Enumerant that specifies whether the convolution accumulates with or
-        overwrites the output tensor.
     """
-    
-    status = _libcudnn.cudnnConvolutionBackwardBias(handle, srcDesc, srcData, destDesc,
-                                                    destData, accumulate)
+
+    status = _libcudnn.cudnnConvolutionBackwardBias(handle, ctypes.byref(ctypes.c_float(alpha)), srcDesc, srcData,
+                                                    ctypes.byref(ctypes.c_float(beta)), destDesc, destData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnConvolutionBackwardFilter.restype = int
 _libcudnn.cudnnConvolutionBackwardFilter.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                                      ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                                     ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc, diffData,
-                                   convDesc, gradDesc, gradData, accumulate):
+                                                     ctypes.c_void_p, ctypes.c_void_p,
+                                                     ctypes.c_void_p, ctypes.c_void_p]
+def cudnnConvolutionBackwardFilter(handle, alpha, srcDesc, srcData, diffDesc, diffData,
+                                   convDesc, beta, gradDesc, gradData):
     """"
     Compute the gradient wrt the filter coefficients.
-    
+
     This function computes the convolution gradient with respect to the filter coefficients.
-    
+
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
-    srcDesc : cudnnTensor4dDescriptor
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
+    srcDesc : cudnnTensorDescriptor
         Handle to a previously initialized tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
-        srcDesc .
-    diffDesc : cudnnTensor4dDescriptor
+        srcDesc.
+    diffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     diffData : void_p
         Data pointer to GPU memory associated with the input differential tensor
         descriptor diffDesc.
     convDesc : cudnnConvolutionDescriptor
         Previously initialized convolution descriptor.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the convolution gradient. Note that if beta is zero,
+        the output is not read and can contain any uninitialized data (including
+        Nan numbers).
     gradDesc : cudnnFilterDescriptor
         Handle to a previously initialized filter descriptor.
     gradData : void_p
         Data pointer to GPU memory associated with the filter descriptor
         gradDesc that carries the result.
-    accumulate : cudnnAccumulateResult
-        Enumerant that specifies whether the convolution accumulates with or
-        overwrites the output tensor.
     """
-    
-    status = _libcudnn.cudnnConvolutionBackwardFilter(handle, srcDesc, srcData, diffDesc,
-                                                      diffData, convDesc, gradDesc,
-                                                      gradData, accumulate)
+
+    status = _libcudnn.cudnnConvolutionBackwardFilter(handle, ctypes.byref(ctypes.c_float(alpha)), srcDesc,
+                                                        srcData, diffDesc,
+                                                        diffData, convDesc, ctypes.byref(ctypes.c_float(beta)),
+                                                        gradDesc, gradData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnConvolutionBackwardData.restype = int
 _libcudnn.cudnnConvolutionBackwardData.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
                                                    ctypes.c_void_p, ctypes.c_void_p,
                                                    ctypes.c_void_p, ctypes.c_void_p,
-                                                   ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-def cudnnConvolutionBackwardData(handle, filterDesc, filterData, diffDesc, diffData, convDesc,
-                                 gradDesc, gradData, accumulate):
+                                                   ctypes.c_void_p, ctypes.c_void_p,
+                                                   ctypes.c_void_p, ctypes.c_void_p]
+def cudnnConvolutionBackwardData(handle, alpha, filterDesc, filterData, diffDesc, diffData, convDesc,
+                                 beta, gradDesc, gradData):
     """"
     Compute the gradients wrt the data.
-    
+
     This function computes the convolution gradient with respect to the output tensor.
-    
+
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
     filterDesc : cudnnFilterDescriptor
         Handle to a previously initialized filter descriptor.
     filterData : void_p
         Data pointer to GPU memory associated with the filter descriptor
         filterDesc.
-    diffDesc : Handle to the previously initialized input differential tensor descriptor.
-    diffData,
-    convDesc,
-    gradDesc,
-    gradData,
-    accumulate
+    diffDesc : cudnnTensorDescriptor
+        Handle to the previously initialized input differential tensor descriptor.
+    diffData : void_p
+        Data pointer to GPU memory associated with the input differential tensor
+        descriptor diffDesc.
+    convDesc : cudnnConvolutionDescriptor
+        Previously initialized convolution descriptor.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the convolution gradient. Note that if beta is zero,
+        the output is not read and can contain any uninitialized data (including
+        Nan numbers).
+    gradDesc : cudnnFilterDescriptor
+        Handle to a previously initialized filter descriptor.
+    gradData : void_p
+        Data pointer to GPU memory associated with the filter descriptor
+        gradDesc that carries the result.
     """
-    
-    status = _libcudnn.cudnnConvolutionBackwardData(handle, filterDesc, filterData, diffDesc,
-                                                    diffData, convDesc, gradDesc,
-                                                    gradData, accumulate)
+
+    status = _libcudnn.cudnnConvolutionBackwardData(handle, ctypes.byref(ctypes.c_float(alpha)), filterDesc,
+                                                    filterData, diffDesc, diffData, convDesc,
+                                                    ctypes.byref(ctypes.c_float(beta)), gradDesc, gradData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnSoftmaxForward.restype = int
 _libcudnn.cudnnSoftmaxForward.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_void_p,
-                                          ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnSoftmaxForward(handle, algorithm, mode, srcDesc, srcData, destDesc, destData):
+                                          ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                          ctypes.c_void_p, ctypes.c_void_p]
+def cudnnSoftmaxForward(handle, algorithm, mode, alpha, srcDesc, srcData, beta, destDesc, destData):
     """"
     This routing computes the softmax function
 
@@ -1000,29 +1207,36 @@ def cudnnSoftmaxForward(handle, algorithm, mode, srcDesc, srcData, destDesc, des
         Enumerant to specify the softmax algorithm.
     mode : cudnnSoftmaxMode
         Enumerant to specify the softmax mode.
-    srcDesc : cudnnTensor4dDescriptor
+    alpha: float
+        Scaling factor with which every element of the input tensors is multiplied.
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
-        srcDesc .
-    destDesc : cudnnTensor4dDescriptor
+        srcDesc.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the activation Note that if beta is zero, the output
+        is not read and can contain any uninitialized data (including Nan numbers).
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDesc.
     """
 
-    status = _libcudnn.cudnnSoftmaxForward(handle, algorithm, mode, srcDesc,
-                                           srcData,
-                                           destDesc, destData)
+    status = _libcudnn.cudnnSoftmaxForward(handle, algorithm, mode, ctypes.byref(ctypes.c_float(alpha)),
+                                        srcDesc, srcData, ctypes.byref(ctypes.c_float(beta)),
+                                        destDesc, destData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnSoftmaxBackward.restype = int
 _libcudnn.cudnnSoftmaxBackward.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int,
                                            ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                           ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnSoftmaxBackward(handle, algorithm, mode, srcDesc, srcData, srcDiffDesc,
-                         srcDiffData, destDiffDesc, destDiffData):
+                                           ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                           ctypes.c_void_p, ctypes.c_void_p]
+def cudnnSoftmaxBackward(handle, algorithm, mode, alpha, srcDesc, srcData, srcDiffDesc,
+                         srcDiffData, beta, destDiffDesc, destDiffData):
     """"
     This routine computes the gradient of the softmax function.
 
@@ -1034,25 +1248,32 @@ def cudnnSoftmaxBackward(handle, algorithm, mode, srcDesc, srcData, srcDiffDesc,
         Enumerant to specify the softmax algorithm.
     mode : cudnnSoftmaxMode
         Enumerant to specify the softmax mode.
-    srcDesc : cudnnTensor4dDescriptor
+    alpha: float
+        Scaling factor with which every element of the input tensors is multiplied.
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
-    srcDiffDesc : cudnnTensor4dDescriptor
+    srcDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     srcDiffData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDiffData.
-    destDiffDesc : cudnnTensor4dDescriptor
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the activation Note that if beta is zero, the output
+        is not read and can contain any uninitialized data (including Nan numbers).
+    destDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized output differential tensor descriptor.
     destDiffData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDiffDesc.
     """
-    
-    status = _libcudnn.cudnnSoftmaxBackward(handle, algorithm, mode, srcDesc, srcData,
-                                            srcDiffDesc, srcDiffData,
+
+    status = _libcudnn.cudnnSoftmaxBackward(handle, algorithm, mode, ctypes.byref(ctypes.c_float(alpha)),
+                                            srcDesc, srcData,
+                                            srcDiffDesc, srcDiffData, ctypes.byref(ctypes.c_float(beta)),
                                             destDiffDesc, destDiffData)
     cudnnCheckStatus(status)
 
@@ -1061,7 +1282,7 @@ _libcudnn.cudnnCreatePoolingDescriptor.argtypes = [ctypes.c_void_p]
 def cudnnCreatePoolingDescriptor():
     """"
     Create pooling descriptor.
-    
+
     This function creates a pooling descriptor object by allocating the memory needed to
     hold its opaque structure,
 
@@ -1074,19 +1295,21 @@ def cudnnCreatePoolingDescriptor():
     poolingDesc = ctypes.c_void_p()
     status = _libcudnn.cudnnCreatePoolingDescriptor(ctypes.byref(poolingDesc))
     cudnnCheckStatus(status)
-    
+
     return poolingDesc.value
 
-_libcudnn.cudnnSetPoolingDescriptor.restype = int
-_libcudnn.cudnnSetPoolingDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int,
+_libcudnn.cudnnSetPooling2dDescriptor.restype = int
+_libcudnn.cudnnSetPooling2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int,
+                                                ctypes.c_int, ctypes.c_int,
                                                 ctypes.c_int, ctypes.c_int,
                                                 ctypes.c_int, ctypes.c_int]
-def cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight, windowWidth, verticalStride, horizontalStride):
+def cudnnSetPooling2dDescriptor(poolingDesc, mode, windowHeight, windowWidth,
+                                verticalPadding, horizontalPadding, verticalStride, horizontalStride):
     """"
-    Initialize a pooling descriptor.
-    
+    Initialize a 2D pooling descriptor.
+
     This function initializes a previously created pooling descriptor object.
-    
+
     Parameters
     ----------
     poolingDesc : cudnnPoolingDescriptor
@@ -1097,53 +1320,66 @@ def cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight, windowWidth, vert
         Height of the pooling window.
     windowWidth : int
         Width of the pooling window.
+    verticalPadding: int
+        Size of vertical padding.
+    horizontalPadding: int
+        Size of horizontal padding.
     verticalStride : int
         Pooling vertical stride.
     horizontalStride : int
         Pooling horizontal stride.
     """
-    
-    status = _libcudnn.cudnnSetPoolingDescriptor(poolingDesc, mode, windowHeight,
-                                                 windowWidth, verticalStride, horizontalStride)
+
+    status = _libcudnn.cudnnSetPooling2dDescriptor(poolingDesc, mode, windowHeight,
+                                                 windowWidth, verticalPadding, horizontalPadding,
+                                                 verticalStride, horizontalStride)
     cudnnCheckStatus(status)
- 
-_libcudnn.cudnnGetPoolingDescriptor.restype = int
-_libcudnn.cudnnGetPoolingDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnGetPoolingDescriptor(poolingDesc):
+
+_libcudnn.cudnnGetPooling2dDescriptor.restype = int
+_libcudnn.cudnnGetPooling2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                                ctypes.c_void_p, ctypes.c_void_p]
+def cudnnGetPooling2dDescriptor(poolingDesc):
     """"
     This function queries a previously created pooling descriptor object.
-    
+
     Parameters
     ----------
     poolingDesc : cudnnPoolingDescriptor
-    Handle to a previously created pooling descriptor.
-    
+    Handle to a previously created 2D pooling descriptor.
+
     Returns
     -------
     mode : cudnnPoolingMode
-    Enumerant to specify the pooling mode.
+        Enumerant to specify the pooling mode.
     windowHeight : int
-    Height of the pooling window.
+        Height of the pooling window.
     windowWidth : int
-    Width of the pooling window.
+        Width of the pooling window.
+    verticalPadding: int
+        Size of vertical padding.
+    horizontalPadding: int
+        Size of horizontal padding.
     verticalStride : int
-    Pooling vertical stride.
+        Pooling vertical stride.
     horizontalStride : int
-    Pooling horizontal stride.
+        Pooling horizontal stride.
     """
-    
+
     mode = ctypes.c_int()
     windowHeight = ctypes.c_int()
     windowWidth = ctypes.c_int()
+    verticalPadding = ctypes.c_int()
+    horizontalPadding = ctypes.c_int()
     verticalStride = ctypes.c_int()
     horizontalStride = ctypes.c_int()
-    
-    status = _libcudnn.cudnnGetPoolingDescriptor(poolingDesc, ctypes.byref(mode), ctypes.byref(windowHeight),
-                                              ctypes.byref(windowWidth), ctypes.byref(verticalStride),
+
+    status = _libcudnn.cudnnGetPooling2dDescriptor(poolingDesc, ctypes.byref(mode), ctypes.byref(windowHeight),
+                                              ctypes.byref(windowWidth), ctypes.byref(verticalPadding),
+                                              ctypes.byref(horizontalPadding), ctypes.byref(verticalStride),
                                               ctypes.byref(horizontalStride))
     cudnnCheckStatus(status)
-    
+
     return mode.value, windowHeight.value, windowWidth.value, verticalStride.value, horizontalStride.value
 
 _libcudnn.cudnnDestroyPoolingDescriptor.restype = int
@@ -1151,45 +1387,53 @@ _libcudnn.cudnnDestroyPoolingDescriptor.argtypes = [ctypes.c_void_p]
 def cudnnDestroyPoolingDescriptor(poolingDesc):
     """"
     This function destroys a previously created pooling descriptor object.
-    
+
     Parameters
     ----------
     poolingDesc : cudnnPoolingDescriptor
     """
-    
+
     status = _libcudnn.cudnnDestroyPoolingDescriptor(poolingDesc)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnPoolingForward.restype = int
 _libcudnn.cudnnPoolingForward.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                          ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnPoolingForward(handle, poolingDesc, srcDesc, srcData, destDesc, destData):
+                                          ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                          ctypes.c_void_p, ctypes.c_void_p]
+def cudnnPoolingForward(handle, poolingDesc, alpha, srcDesc, srcData, beta, destDesc, destData):
     """"
     Perform pooling.
-    
+
     This function computes pooling of input values (i.e., the maximum or average of several
     adjacent values) to produce an output with smaller height and/or width.
-    
+
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
     poolingDesc : cudnnPoolingDescriptor
         Handle to a previously initialized pooling descriptor.
-    srcDesc : cudnnTensor4dDescriptor
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
-    destDesc : cudnnTensor4dDescriptor
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the activation Note that if beta is zero, the output
+        is not read and can contain any uninitialized data (including Nan numbers).
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDesc.
     """
-    
-    status = _libcudnn.cudnnPoolingForward(handle, poolingDesc, srcDesc, srcData,
-                                           destDesc, destData)
+
+    status = _libcudnn.cudnnPoolingForward(handle, poolingDesc, ctypes.byref(ctypes.c_float(alpha)),
+                                        srcDesc, srcData, ctypes.byref(ctypes.c_float(beta)),
+                                        destDesc, destData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnPoolingBackward.restype = int
@@ -1197,57 +1441,70 @@ _libcudnn.cudnnPoolingBackward.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
                                            ctypes.c_void_p, ctypes.c_void_p,
                                            ctypes.c_void_p, ctypes.c_void_p,
                                            ctypes.c_void_p, ctypes.c_void_p,
+                                           ctypes.c_void_p, ctypes.c_void_p,
                                            ctypes.c_void_p, ctypes.c_void_p]
-def cudnnPoolingBackward(handle, poolingDesc, srcDesc, srcData, srcDiffDesc,
-                         srcDiffData, destDesc, destData, destDiffDesc, destDiffData):
+def cudnnPoolingBackward(handle, poolingDesc, alpha, srcDesc, srcData, srcDiffDesc,
+                         srcDiffData, destDesc, destData, beta, destDiffDesc, destDiffData):
     """"
     Gradients wrt the pooling operation.
-    
+
     This function computes the gradient of a pooling operation.
-    
+
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
     poolingDesc : cudnnPoolingDescriptor
         Handle to the previously initialized pooling descriptor.
-    srcDesc : cudnnTensor4dDescriptor
+    alpha: float
+        Scaling factor with which every element of the input tensors is multiplied.
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
-    srcDiffDesc : cudnnTensor4dDescriptor
+    srcDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     srcDiffData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDiffData.
-    destDesc : cudnnTensor4dDescriptor
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDesc.
-    destDiffDesc : cudnnTensor4dDescriptor
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the activation Note that if beta is zero, the output
+        is not read and can contain any uninitialized data (including Nan numbers).
+    destDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized output differential tensor descriptor.
     destDiffData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDiffDesc.
     """
-    
-    status = _libcudnn.cudnnPoolingBackward(handle, poolingDesc, srcDesc, srcData, srcDiffDesc,
-                                            srcDiffData,
-                                            destDesc, destData,
+
+    status = _libcudnn.cudnnPoolingBackward(handle, poolingDesc, ctypes.byref(ctypes.c_float(alpha)),
+                                            srcDesc, srcData, srcDiffDesc, srcDiffData,
+                                            destDesc, destData, ctypes.byref(ctypes.c_float(beta)),
                                             destDiffDesc, destDiffData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnActivationForward.restype = int
 _libcudnn.cudnnActivationForward.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
-                                             ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnActivationForward(handle, mode, srcDesc, srcData, destDesc, destData):
+                                             ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                             ctypes.c_void_p, ctypes.c_void_p]
+def cudnnActivationForward(handle, mode, alpha, srcDesc, srcData, beta, destDesc, destData):
     """"
     Apply activation function.
 
     This routine applies a specified neuron activation function element-wise over each input
     value.
+
+    In-place operation is allowed for this routine; i.e., srcData and destData pointers
+    may be equal. However, this requires srcDesc and destDesc descriptors to be
+    identical (particularly, the strides of the input and output must match for in-place
+    operation to be allowed).
 
     Parameters
     ----------
@@ -1255,11 +1512,17 @@ def cudnnActivationForward(handle, mode, srcDesc, srcData, destDesc, destData):
         Handle to a previously created cuDNN context.
     mode : cudnnActivationMode
         Enumerant to specify the activation mode.
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
     srcDesc : cudnnTensor4dDescription
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the activation Note that if beta is zero, the output
+        is not read and can contain any uninitialized data (including Nan numbers).
     destDesc : cudnnTensor4dDescription
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
@@ -1267,51 +1530,64 @@ def cudnnActivationForward(handle, mode, srcDesc, srcData, destDesc, destData):
         destDesc.
     """
 
-    status = _libcudnn.cudnnActivationForward(handle, mode, srcDesc, srcData,
-                                              destDesc, destData)
+    status = _libcudnn.cudnnActivationForward(handle, mode, ctypes.byref(ctypes.c_float(alpha)), srcDesc, srcData,
+                                              ctypes.byref(ctypes.c_float(beta)), destDesc, destData)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnActivationBackward.restype = int
 _libcudnn.cudnnActivationBackward.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p,
                                               ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-def cudnnActivationBackward(handle, mode, srcDesc, srcData, srcDiffDesc, srcDiffData,
-                            destDesc, destData, destDiffDesc, destDiffData):
+                                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                              ctypes.c_void_p, ctypes.c_void_p]
+def cudnnActivationBackward(handle, mode, alpha, srcDesc, srcData, srcDiffDesc, srcDiffData,
+                            destDesc, destData, beta, destDiffDesc, destDiffData):
     """"
     Gradient of activation function.
-    
+
     This routine computes the gradient of a neuron activation function.
-    
+
+    In-place operation is allowed for this routine; i.e., srcData and destData
+    pointers may be equal and srcDiffData and destDiffData pointers may be equal.
+    However, this requires the corresponding tensor descriptors to be identical
+    (particularly, the strides of the input and output must match for in-place operation
+    to be allowed).
+
     Parameters
     ----------
     handle : cudnnHandle
         Handle to a previously created cuDNN context.
     mode : cudnnActivationMode
         Enumerant to specify the activation mode.
-    srcDesc : cudnnTensor4dDescriptor
+    alpha: float
+        Scaling factor with which every element of the input tensor is multiplied.
+    srcDesc : cudnnTensorDescriptor
         Handle to the previously initialized input tensor descriptor.
     srcData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDesc.
-    srcDiffDesc : cudnnTensor4dDescriptor
+    srcDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized input differential tensor descriptor.
     srcDiffData : void_p
         Data pointer to GPU memory associated with the tensor descriptor
         srcDiffData.
-    destDesc : cudnnTensor4dDescriptor
+    destDesc : cudnnTensorDescriptor
         Handle to the previously initialized output tensor descriptor.
     destData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDesc.
-    destDiffDesc : cudnnTensor4dDescriptor
+    beta: float
+        Scaling factor which is applied on every element of the output tensor prior
+        to adding the result of the activation gradient. Note that if beta is zero, the
+        output is not read and can contain any uninitialized data (including Nan numbers).
+    destDiffDesc : cudnnTensorDescriptor
         Handle to the previously initialized output differential tensor descriptor.
     destDiffData : void_p
         Data pointer to GPU memory associated with the output tensor descriptor
         destDiffDesc.
     """
-    
-    status = _libcudnn.cudnnActivationBackward(handle, mode, srcDesc, srcData,
+
+    status = _libcudnn.cudnnActivationBackward(handle, mode, ctypes.byref(ctypes.c_float(alpha)), srcDesc, srcData,
                                                srcDiffDesc, srcDiffData,
-                                               destDesc, destData,
+                                               destDesc, destData, ctypes.byref(ctypes.c_float(beta)),
                                                destDiffDesc, destDiffData)
     cudnnCheckStatus(status)
