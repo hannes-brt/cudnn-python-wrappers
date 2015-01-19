@@ -1076,7 +1076,7 @@ def cudnnConvolutionForward(handle, alpha, srcDesc, srcData, filterDesc, filterD
         Data pointer to GPU memory associated with the tensor descriptor destDesc.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1127,7 +1127,7 @@ def cudnnConvolutionBackwardBias(handle, alpha, srcDesc, srcData, beta, destDesc
         destDesc.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1181,7 +1181,7 @@ def cudnnConvolutionBackwardFilter(handle, alpha, srcDesc, srcData, diffDesc, di
         gradDesc that carries the result.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1238,7 +1238,7 @@ def cudnnConvolutionBackwardData(handle, alpha, filterDesc, filterData, diffDesc
         gradDesc that carries the result.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1285,7 +1285,7 @@ def cudnnSoftmaxForward(handle, algorithm, mode, alpha, srcDesc, srcData, beta, 
         destDesc.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1339,7 +1339,7 @@ def cudnnSoftmaxBackward(handle, algorithm, mode, alpha, srcDesc, srcData, srcDi
         destDiffDesc.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDiffDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDiffDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1507,7 +1507,7 @@ def cudnnPoolingForward(handle, poolingDesc, alpha, srcDesc, srcData, beta, dest
         destDesc.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1568,7 +1568,7 @@ def cudnnPoolingBackward(handle, poolingDesc, alpha, srcDesc, srcData, srcDiffDe
         destDiffDesc.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1622,7 +1622,7 @@ def cudnnActivationForward(handle, mode, alpha, srcDesc, srcData, beta, destDesc
         destDesc.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
@@ -1686,7 +1686,7 @@ def cudnnActivationBackward(handle, mode, alpha, srcDesc, srcData, srcDiffDesc, 
         destDiffDesc.
     """
 
-    dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
+    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
