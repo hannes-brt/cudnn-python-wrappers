@@ -24,6 +24,9 @@ these wrappers will be to be used along `PyCUDA
 equally well with other frameworks such as `CUDAMat
 <https://github.com/cudamat/cudamat>`__.
 
+This version of `cudnn-python-wrappers` targets cudnn-6.5-R2-rc2. Please
+use version 1.x of the wrappers for cudnn-6.5-R1.
+
 Users need to make sure that they pass all arguments as the correct data
 type, that is ``ctypes.c_void_p`` for all handles and array pointers and
 ``ctypes.c_int`` for all integer arguments and enums. Here is an example
@@ -43,8 +46,7 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     tensor_format = libcudnn.cudnnTensorFormat['CUDNN_TENSOR_NCHW']
     data_type = libcudnn.cudnnDataType['CUDNN_DATA_FLOAT']
     convolution_mode = libcudnn.cudnnConvolutionMode['CUDNN_CROSS_CORRELATION']
-    convolution_fwd_pref = libcudnn.cudnnConvolutionFwdPreference['CUDNN_CONVOLUTION_FWD_NO_WORKSPACE']
-    algo = libcudnn.cudnnConvolutionFwdAlgo['CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM']
+    convolution_fwd_pref = libcudnn.cudnnConvolutionFwdPreference['CUDNN_CONVOLUTION_FWD_PREFER_FASTEST']
 
     n_input = 100
     filters_in = 10
@@ -70,7 +72,7 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     filters = gpuarray.to_gpu(np.random.rand(filters_out,
         filters_in, height_filter, width_filter).astype(np.float32))
 
-    #Descriptor for input
+    # Descriptor for input
     X_desc = libcudnn.cudnnCreateTensorDescriptor()
     libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type,
         n_input, filters_in, height_in, width_in)
@@ -102,6 +104,8 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     Y_data = ctypes.c_void_p(int(Y.gpudata))
 
     # Perform convolution
+    algo = libcudnn.cudnnGetConvolutionForwardAlgorithm(cudnn_context, X_desc,
+        filters_desc, conv_desc, Y_desc, convolution_fwd_pref, 0)
     libcudnn.cudnnConvolutionForward(cudnn_context, alpha, X_desc, X_data,
         filters_desc, filters_data, conv_desc, algo, None, 0, beta,
         Y_desc, Y_data)
