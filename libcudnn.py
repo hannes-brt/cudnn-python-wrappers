@@ -1238,7 +1238,7 @@ def cudnnConvolutionBackwardData(handle, alpha, filterDesc, filterData, diffDesc
         gradDesc that carries the result.
     """
 
-    dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
+    dataType = cudnnGetTensor4dDescriptor(diffDesc)[0]
     if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
