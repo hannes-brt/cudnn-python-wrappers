@@ -213,8 +213,12 @@ cudnnSoftmaxMode = {
 cudnnPoolingMode = {
     'CUDNN_POOLING_MAX': 0,     # The maximum value inside the pooling window will
                                 # be used.
-    'CUDNN_POOLING_AVERAGE': 1  # The values inside the pooling window will be
-                                # averaged.
+    'CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING': 1,   # The values inside the
+                                # pooling window will be averaged and this count
+                                # includes padded values.
+    'CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING': 2    # The values inside the
+                                #  pooling window will be averaged and this count
+                                # does not include padded values.
 }
 
 # cudnnActivationMode_t is an enumerated type used to select the neuron activation
