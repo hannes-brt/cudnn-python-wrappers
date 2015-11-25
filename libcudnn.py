@@ -7,11 +7,13 @@ import ctypes
 import ctypes.util
 
 if sys.platform in ('linux2', 'linux'):
-    _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.6.5', 'libcudnn.so.6.5.35']
+    _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.7.0', 'libcudnn.so.7.0.64']
 elif sys.platform == 'darwin':
-    _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.6.5.dylib']
+    # TODO: check darwin version
+    _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.7.5.dylib']
 elif sys.platform == 'win32':
-    _libcudnn_libname_list = ['cudnn64_65.dll']
+    # TODO: check win32 version
+    _libcudnn_libname_list = ['cudnn70_64.dll']
 else:
     raise RuntimeError('unsupported platform')
 
@@ -112,8 +114,10 @@ cudnnTensorFormat = {
 cudnnDataType = {
     'CUDNN_DATA_FLOAT': 0,  # The data is 32-bit single-precision floating point
                             # ( float ).
-    'CUDNN_DATA_DOUBLE': 1  # The data is 64-bit double-precision floating point
+    'CUDNN_DATA_DOUBLE': 1, # The data is 64-bit double-precision floating point
                             # ( double ).
+    'CUDNN_DATA_HALF': 2    # The data is 16-bit half-precision floating point
+                            # ( half ).
 }
 
 # cudnnAddMode_t is an enumerated type used by cudnnAddTensor() to specify how
@@ -183,9 +187,10 @@ cudnnConvolutionFwdAlgo = {
     'CUDNN_CONVOLUTION_FWD_ALGO_GEMM': 2, # This algorithm expresses the convolution as an
                         # explicit matrix product. A significant memory workspace is needed to
                         # store the matrix that holds the input tensor data.
-    'CUDNN_CONVOLUTION_FWD_ALGO_DIRECT': 3 # This algorithm expresses the convolution as a
+    'CUDNN_CONVOLUTION_FWD_ALGO_DIRECT': 3, # This algorithm expresses the convolution as a
                         # direct convolution (e.g without implicitly or explicitly doing a
                         # matrix multiplication).
+    'CUDNN_CONVOLUTION_FWD_ALGO_FFT': 4
 }
 
 # cudnnSoftmaxAlgorithm_t is used to select an implementation of the softmax
@@ -193,8 +198,11 @@ cudnnConvolutionFwdAlgo = {
 cudnnSoftmaxAlgorithm = {
     'CUDNN_SOFTMAX_FAST': 0,    # This implementation applies the straightforward
                                 # softmax operation.
-    'CUDNN_SOFTMAX_ACCURATE': 1 # This implementation applies a scaling to the input
+    'CUDNN_SOFTMAX_ACCURATE': 1, # This implementation applies a scaling to the input
                                 # to avoid any potential overflow.
+    'CUDNN_SOFTMAX_LOG' : 2     # This implementation applied the Log
+                                # softmax operation, scaling the input to avoid any potential
+                                # overflow.
 }
 
 # cudnnSoftmaxMode_t is used to select over which data the cudnnSoftmaxForward()
