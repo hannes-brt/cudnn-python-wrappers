@@ -7,7 +7,7 @@ import ctypes
 import ctypes.util
 
 if sys.platform in ('linux2', 'linux'):
-    _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.7.0', 'libcudnn.so.7.0.64']
+    _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.4', 'libcudnn.so.4.0.4']
 elif sys.platform == 'darwin':
     # TODO: check darwin version
     _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.7.5.dylib']
@@ -190,7 +190,8 @@ cudnnConvolutionFwdAlgo = {
     'CUDNN_CONVOLUTION_FWD_ALGO_DIRECT': 3, # This algorithm expresses the convolution as a
                         # direct convolution (e.g without implicitly or explicitly doing a
                         # matrix multiplication).
-    'CUDNN_CONVOLUTION_FWD_ALGO_FFT': 4
+    'CUDNN_CONVOLUTION_FWD_ALGO_FFT': 4,
+    'CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING': 5
 }
 
 # cudnnSoftmaxAlgorithm_t is used to select an implementation of the softmax
@@ -933,6 +934,27 @@ def cudnnGetConvolution2dForwardOutputDim(convDesc, inputTensorDesc, filterDesc)
 
     return n.value, c.value, h.value, w.value
 
+_libcudnn.cudnnSetConvolutionNdDescriptor.restype = int
+_libcudnn.cudnnSetConvolutionNdDescriptor.argtypes = [ctypes.c_void_p, # convDesc
+                                                      ctypes.c_int, # arrayLength
+                                                      ctypes.POINTER(ctypes.c_int), # padA[]
+                                                      ctypes.POINTER(ctypes.c_int), # filterStrideA[]
+                                                      ctypes.POINTER(ctypes.c_int), # upscaleA[]
+                                                      ctypes.c_int, # mode
+                                                      ctypes.c_int] # dataType
+def cudnnSetConvolutionNdDescriptor(convDesc, padA, filterStrideA, upscaleA, mode, dataType):
+    dim = len(padA)
+    status = _libcudnn.cudnnSetConvolutionNdDescriptor(convDesc,
+                                                       dim,
+                                                       (ctypes.c_int * dim)(*padA),
+                                                       (ctypes.c_int*dim)(*filterStrideA),
+                                                       (ctypes.c_int*dim)(*upscaleA),
+                                                       mode,
+                                                       dataType)
+    cudnnCheckStatus(status)
+
+
+
 _libcudnn.cudnnDestroyConvolutionDescriptor.restype = int
 _libcudnn.cudnnDestroyConvolutionDescriptor.argtypes = [ctypes.c_void_p]
 def cudnnDestroyConvolutionDescriptor(convDesc):
@@ -949,6 +971,45 @@ def cudnnDestroyConvolutionDescriptor(convDesc):
 
     status = _libcudnn.cudnnDestroyConvolutionDescriptor(convDesc)
     cudnnCheckStatus(status)
+
+class cudnnConvolutionFwdAlgoPerf(ctypes.Structure):
+    _fields_ = [("algo", ctypes.c_int),
+                ("status", ctypes.c_int),
+                ("time", ctypes.c_float),
+                ("memory", ctypes.c_size_t)]
+
+    def __str__(self):
+        return '(algo=%d, status=%d, time=%f, memory=%d)' % (self.algo,
+                                                             self.status,
+                                                             self.time,
+                                                             self.memory)
+    def __repr__(self):
+        return self.__str__()
+
+_libcudnn.cudnnFindConvolutionForwardAlgorithm.restype = int
+_libcudnn.cudnnFindConvolutionForwardAlgorithm.argtypes = [ctypes.c_void_p, # handle
+                                                           ctypes.c_void_p, # xDesc
+                                                           ctypes.c_void_p, # wDesc
+                                                           ctypes.c_void_p, # convDesc
+                                                           ctypes.c_void_p, # yDesc
+                                                           ctypes.c_int, # requestAlgoCount
+                                                           ctypes.c_void_p, #returnedAlgoCount
+                                                           ctypes.c_void_p] #perfResults
+def cudnnFindConvolutionForwardAlgorithm(handle, xDesc, wDesc, convDesc, yDesc, requestedAlgoCount):
+    perfResultsType = cudnnConvolutionFwdAlgoPerf * requestedAlgoCount
+    perfResults = perfResultsType()
+    returnedAlgoCount = ctypes.c_int()
+    status = _libcudnn.cudnnFindConvolutionForwardAlgorithm(handle,
+                                                            xDesc,
+                                                            wDesc,
+                                                            convDesc,
+                                                            yDesc,
+                                                            ctypes.c_int(requestedAlgoCount),
+                                                            ctypes.byref(returnedAlgoCount),
+                                                            ctypes.cast(perfResults, ctypes.POINTER(cudnnConvolutionFwdAlgoPerf)))
+    cudnnCheckStatus(status)
+    return perfResults[0:returnedAlgoCount.value]
+
 
 _libcudnn.cudnnGetConvolutionForwardAlgorithm.restype = int
 _libcudnn.cudnnGetConvolutionForwardAlgorithm.argtypes = [ctypes.c_void_p,

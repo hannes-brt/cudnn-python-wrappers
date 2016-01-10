@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import pycuda.autoinit
 import pycuda.driver as drv
 from pycuda import gpuarray
@@ -83,7 +85,7 @@ Y_data = ctypes.c_void_p(int(Y.gpudata))
 algo = libcudnn.cudnnGetConvolutionForwardAlgorithm(cudnn_context, X_desc,
     filters_desc, conv_desc, Y_desc, convolution_fwd_pref, 0)
 
-print("Cudnn algorithm = %d", algo.value)
+print("Cudnn algorithm = %d" % algo.value)
 
 ws_size = libcudnn.cudnnGetConvolutionForwardWorkspaceSize(cudnn_context, X_desc, filters_desc, conv_desc, Y_desc, algo)
 ws_ptr  = drv.mem_alloc(ws_size.value) if ws_size.value > 0 else 0
