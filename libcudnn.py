@@ -207,6 +207,19 @@ cudnnConvolutionBwdDataAlgo = {
     'CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING': 3
 }
 
+cudnnConvolutionBwdFilterPreference = {
+    'CUDNN_CONVOLUTION_BWD_FILTER_NO_WORKSPACE' : 0,
+    'CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST' : 1,
+    'CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT' : 2,
+}
+
+cudnnConvolutionBwdFilterAlgo = {
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0' : 0,
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1' : 1,
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT' : 2,
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3' : 3
+}
+
 # cudnnSoftmaxAlgorithm_t is used to select an implementation of the softmax
 # function used in cudnnSoftmaxForward() and cudnnSoftmaxBackward().
 cudnnSoftmaxAlgorithm = {
@@ -561,12 +574,12 @@ def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destDa
     """
 
     dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(destDesc)
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnTransformTensor(handle, alphaRef, srcDesc,
                                                 srcData, betaRef,
@@ -610,12 +623,12 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
     """
 
     dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(srcDestDesc)
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnAddTensor(handle, mode, alphaRef, biasDesc,
                                         biasData, betaRef,
@@ -642,10 +655,10 @@ def cudnnSetTensor(handle, srcDesc, srcData, value):
     """
 
     dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(srcDesc)
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
 
     status = _libcudnn.cudnnSetTensor(handle, srcDesc, srcData, alphaRef)
     cudnnCheckStatus(status)
@@ -672,10 +685,10 @@ def cudnnScaleTensor(handle, srcDesc, srcData, alpha):
     """
 
     dataType, _, _, _, _, _, _, _, _ = cudnnGetTensor4dDescriptor(srcDesc)
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
 
     status = _libcudnn.cudnnScaleTensor(handle, srcDesc, srcData, alphaRef)
     cudnnCheckStatus(status)
@@ -1165,12 +1178,12 @@ def cudnnConvolutionForward(handle, alpha, srcDesc, srcData, wDesc, w,
     """
 
     dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnConvolutionForward(handle, alphaRef, srcDesc, srcData,
                                             wDesc, w,
@@ -1216,73 +1229,16 @@ def cudnnConvolutionBackwardBias(handle, alpha, srcDesc, srcData, beta, destDesc
     """
 
     dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnConvolutionBackwardBias(handle, alphaRef, srcDesc, srcData,
                                                     betaRef, destDesc, destData)
     cudnnCheckStatus(status)
-
-_libcudnn.cudnnConvolutionBackwardFilter.restype = int
-_libcudnn.cudnnConvolutionBackwardFilter.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                                     ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                                     ctypes.c_void_p, ctypes.c_void_p,
-                                                     ctypes.c_void_p, ctypes.c_void_p]
-def cudnnConvolutionBackwardFilter(handle, alpha, srcDesc, srcData, diffDesc, diffData,
-                                   convDesc, beta, gradDesc, gradData):
-    """"
-    Compute the gradient wrt the filter coefficients.
-
-    This function computes the convolution gradient with respect to the filter coefficients.
-
-    Parameters
-    ----------
-    handle : cudnnHandle
-        Handle to a previously created cuDNN context.
-    alpha: float
-        Scaling factor with which every element of the input tensor is multiplied.
-    srcDesc : cudnnTensorDescriptor
-        Handle to a previously initialized tensor descriptor.
-    srcData : void_p
-        Data pointer to GPU memory associated with the tensor descriptor
-        srcDesc.
-    diffDesc : cudnnTensorDescriptor
-        Handle to the previously initialized input differential tensor descriptor.
-    diffData : void_p
-        Data pointer to GPU memory associated with the input differential tensor
-        descriptor diffDesc.
-    convDesc : cudnnConvolutionDescriptor
-        Previously initialized convolution descriptor.
-    beta: float
-        Scaling factor which is applied on every element of the output tensor prior
-        to adding the result of the convolution gradient. Note that if beta is zero,
-        the output is not read and can contain any uninitialized data (including
-        Nan numbers).
-    gradDesc : cudnnFilterDescriptor
-        Handle to a previously initialized filter descriptor.
-    gradData : void_p
-        Data pointer to GPU memory associated with the filter descriptor
-        gradDesc that carries the result.
-    """
-
-    dataType = cudnnGetTensor4dDescriptor(diffDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
-        alphaRef = ctypes.byref(ctypes.c_double(alpha))
-        betaRef = ctypes.byref(ctypes.c_double(beta))
-
-    status = _libcudnn.cudnnConvolutionBackwardFilter(handle, alphaRef, srcDesc,
-                                                        srcData, diffDesc,
-                                                        diffData, convDesc, betaRef,
-                                                        gradDesc, gradData)
-    cudnnCheckStatus(status)
-
 
 
 class cudnnConvolutionBwdDataAlgoPerf(ctypes.Structure):
@@ -1407,6 +1363,129 @@ def cudnnConvolutionBackwardData(handle,
                                                     dxDesc, dx)
     cudnnCheckStatus(status)
 
+class cudnnConvolutionBwdFilterAlgoPerf(ctypes.Structure):
+    _fields_ = [("algo", ctypes.c_int),
+                ("status", ctypes.c_int),
+                ("time", ctypes.c_float),
+                ("memory", ctypes.c_size_t)]
+
+    def __str__(self):
+        return '(algo=%d, status=%d, time=%f, memory=%d)' % (self.algo,
+                                                             self.status,
+                                                             self.time,
+                                                             self.memory)
+    def __repr__(self):
+        return self.__str__()
+
+_libcudnn.cudnnFindConvolutionBackwardFilterAlgorithm.restype = int
+_libcudnn.cudnnFindConvolutionBackwardFilterAlgorithm.argtypes = [ctypes.c_void_p, # handle
+                                                                  ctypes.c_void_p, # xDesc
+                                                                  ctypes.c_void_p, # dyDesc
+                                                                  ctypes.c_void_p, # convDesc
+                                                                  ctypes.c_void_p, # dwDesc
+                                                                  ctypes.c_int, # requestAlgoCount
+                                                                  ctypes.c_void_p, #returnedAlgoCount
+                                                                  ctypes.c_void_p] #perfResults
+def cudnnFindConvolutionBackwardFilterAlgorithm(handle, xDesc, dyDesc,
+                                                convDesc, dwDesc, 
+                                                requestedAlgoCount):
+    perfResultsType = cudnnConvolutionBwdFilterAlgoPerf * requestedAlgoCount
+    perfResults = perfResultsType()
+    returnedAlgoCount = ctypes.c_int()
+    status = _libcudnn.cudnnFindConvolutionBackwardFilterAlgorithm(handle,
+                                                                 xDesc,
+                                                                 dyDesc,
+                                                                 convDesc,
+                                                                 dwDesc,
+                                                                 ctypes.c_int(requestedAlgoCount),
+                                                                 ctypes.byref(returnedAlgoCount),
+                                                                 ctypes.cast(perfResults, ctypes.POINTER(cudnnConvolutionBwdFilterAlgoPerf)))
+    cudnnCheckStatus(status)
+    return perfResults[0:returnedAlgoCount.value]
+
+_libcudnn.cudnnGetConvolutionBackwardFilterAlgorithm.restype = int
+_libcudnn.cudnnGetConvolutionBackwardFilterAlgorithm.argtypes = [ctypes.c_void_p,
+                                                                 ctypes.c_void_p,
+                                                                 ctypes.c_void_p,
+                                                                 ctypes.c_void_p,
+                                                                 ctypes.c_void_p,
+                                                                 ctypes.c_int,
+                                                                 ctypes.c_size_t,
+                                                                 ctypes.c_void_p]
+def cudnnGetConvolutionBackwardFilterAlgorithm(handle, xDesc, dyDesc, convDesc,
+                                               dwDesc, preference, memoryLimitInbytes):
+    algo = ctypes.c_int()
+    status = _libcudnn.cudnnGetConvolutionBackwardFilterAlgorithm(handle,
+                                                                  xDesc,
+                                                                  dyDesc,
+                                                                  convDesc,
+                                                                  dwDesc,
+                                                                  preference,
+                                                                  ctypes.c_size_t(memoryLimitInbytes),
+                                                                  ctypes.byref(algo))
+    cudnnCheckStatus(status)
+    return algo
+
+
+_libcudnn.cudnnGetConvolutionBackwardFilterWorkspaceSize.restype = int
+_libcudnn.cudnnGetConvolutionBackwardFilterWorkspaceSize.argtypes = [ctypes.c_void_p,
+                                                                     ctypes.c_void_p,
+                                                                     ctypes.c_void_p,
+                                                                     ctypes.c_void_p,
+                                                                     ctypes.c_void_p,
+                                                                     ctypes.c_int, #algo
+                                                                     ctypes.c_void_p]
+def cudnnGetConvolutionBackwardFilterWorkspaceSize(handle, xDesc, dyDesc,
+                                                   convDesc, gradDesc, algo):
+    sizeInBytes = ctypes.c_size_t()
+    status = _libcudnn.cudnnGetConvolutionBackwardFilterWorkspaceSize(handle,
+                                                                      xDesc,
+                                                                      dyDesc,
+                                                                      convDesc,
+                                                                      gradDesc,
+                                                                      algo,
+                                                                      ctypes.byref(sizeInBytes))
+    cudnnCheckStatus(status)
+    return sizeInBytes
+
+_libcudnn.cudnnConvolutionBackwardFilter.restype = int
+_libcudnn.cudnnConvolutionBackwardFilter.argtypes = [ctypes.c_void_p,
+                                                     ctypes.c_void_p,
+                                                     ctypes.c_void_p, ctypes.c_void_p,
+                                                     ctypes.c_void_p, ctypes.c_void_p,
+                                                     ctypes.c_void_p,
+                                                     ctypes.c_int,
+                                                     ctypes.c_void_p, ctypes.c_size_t,
+                                                     ctypes.c_void_p,
+                                                     ctypes.c_void_p, ctypes.c_void_p]
+def cudnnConvolutionBackwardFilter(handle, 
+                                   alpha, 
+                                   xDesc, x, 
+                                   dyDesc, dy, 
+                                   convDesc,
+                                   algo,
+                                   workspace, workSpaceSizeInBytes,
+                                   beta,
+                                   dwDesc, dw):
+    dataType = cudnnGetTensor4dDescriptor(dyDesc)[0]
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
+        alphaRef = ctypes.byref(ctypes.c_double(alpha))
+        betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
+
+    status = _libcudnn.cudnnConvolutionBackwardFilter(handle,
+                                                      alphaRef,
+                                                      xDesc, x,
+                                                      dyDesc, dy,
+                                                      convDesc,
+                                                      algo,
+                                                      workspace, workSpaceSizeInBytes,
+                                                      betaRef,
+                                                      dwDesc, dw)
+    cudnnCheckStatus(status)
+
 _libcudnn.cudnnSoftmaxForward.restype = int
 _libcudnn.cudnnSoftmaxForward.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_void_p,
                                           ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
@@ -1442,12 +1521,12 @@ def cudnnSoftmaxForward(handle, algorithm, mode, alpha, srcDesc, srcData, beta, 
     """
 
     dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnSoftmaxForward(handle, algorithm, mode, alphaRef,
                                         srcDesc, srcData, betaRef,
@@ -1496,12 +1575,12 @@ def cudnnSoftmaxBackward(handle, algorithm, mode, alpha, srcDesc, srcData, srcDi
     """
 
     dataType = cudnnGetTensor4dDescriptor(destDiffDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnSoftmaxBackward(handle, algorithm, mode, alphaRef,
                                             srcDesc, srcData,
@@ -1664,12 +1743,12 @@ def cudnnPoolingForward(handle, poolingDesc, alpha, srcDesc, srcData, beta, dest
     """
 
     dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnPoolingForward(handle, poolingDesc, alphaRef,
                                         srcDesc, srcData, betaRef,
@@ -1725,12 +1804,12 @@ def cudnnPoolingBackward(handle, poolingDesc, alpha, srcDesc, srcData, srcDiffDe
     """
 
     dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnPoolingBackward(handle, poolingDesc, alphaRef,
                                             srcDesc, srcData, srcDiffDesc, srcDiffData,
@@ -1779,12 +1858,12 @@ def cudnnActivationForward(handle, mode, alpha, srcDesc, srcData, beta, destDesc
     """
 
     dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnActivationForward(handle, mode, alphaRef, srcDesc, srcData,
                                               betaRef, destDesc, destData)
@@ -1843,12 +1922,12 @@ def cudnnActivationBackward(handle, mode, alpha, srcDesc, srcData, srcDiffDesc, 
     """
 
     dataType = cudnnGetTensor4dDescriptor(destDesc)[0]
-    if dataType == cudnnDataType['CUDNN_DATA_FLOAT']:
-        alphaRef = ctypes.byref(ctypes.c_float(alpha))
-        betaRef = ctypes.byref(ctypes.c_float(beta))
-    else:
+    if dataType == cudnnDataType['CUDNN_DATA_DOUBLE']:
         alphaRef = ctypes.byref(ctypes.c_double(alpha))
         betaRef = ctypes.byref(ctypes.c_double(beta))
+    else:
+        alphaRef = ctypes.byref(ctypes.c_float(alpha))
+        betaRef = ctypes.byref(ctypes.c_float(beta))
 
     status = _libcudnn.cudnnActivationBackward(handle, mode, alphaRef, srcDesc, srcData,
                                                srcDiffDesc, srcDiffData,
