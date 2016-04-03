@@ -28,63 +28,16 @@ for _libcudnn_libname in _libcudnn_libname_list:
 if _libcudnn is None:
     raise OSError('cuDNN library not found')
 
-# Generic cuDNN error
+# cuDNN error
+_libcudnn.cudnnGetErrorString.restype = ctypes.c_char_p
+_libcudnn.cudnnGetErrorString.argtypes = [ctypes.c_int]
 class cudnnError(Exception):
-    """cuDNN Error"""
-    pass
+    def __init__(self, status):
+        self.status = status
+    def __str__(self):
+        error = _libcudnn.cudnnGetErrorString(self.status)
+        return '%s' % (error)
 
-class cudnnStatusNotInitialized(cudnnError):
-    """cuDNN library not initialized"""
-    pass
-
-class cudnnStatusAllocFailed(cudnnError):
-    """cuDNN allocation failed"""
-    pass
-
-class cudnnStatusBadParam(cudnnError):
-    """An incorrect value or parameter was passed to the function"""
-    pass
-
-class cudnnStatusInvalidValue(cudnnError):
-    """Invalid value"""
-    pass
-
-class cudnnStatusArchMismatch(cudnnError):
-    """Function requires an architectural feature absent from the device"""
-    pass
-
-class cudnnStatusMappingError(cudnnError):
-    """Access to GPU memory space failed"""
-    pass
-
-class cudnnStatusExecutionFailed(cudnnError):
-    """GPU program failed to execute"""
-    pass
-
-class cudnnStatusInternalError(cudnnError):
-    """An internal cudnn operation failed"""
-    pass
-
-class cudnnStatusNotSupported(cudnnError):
-    """The functionality requested is not presently supported by cudnn"""
-    pass
-
-class cudnnStatusLicenseError(cudnnError):
-    """License invalid or not found"""
-    pass
-
-cudnnExceptions = {
-    1: cudnnStatusNotInitialized,
-    2: cudnnStatusAllocFailed,
-    3: cudnnStatusBadParam,
-    4: cudnnStatusInternalError,
-    5: cudnnStatusInvalidValue,
-    6: cudnnStatusArchMismatch,
-    7: cudnnStatusMappingError,
-    8: cudnnStatusExecutionFailed,
-    9: cudnnStatusNotSupported,
-    10: cudnnStatusLicenseError
-}
 
 # Data layout specification
 # cudnnTensorFormat_t is an enumerated type used by
@@ -264,6 +217,13 @@ cudnnActivationMode = {
     'CUDNN_ACTIVATION_TANH': 2      # hyperbolic tangent function
 }
 
+# cudnnNanPropagation_t is an enumerated type to specify the propogation of Nan
+cudnnNanPropagation = {
+    'CUDNN_NOT_PROPAGATE_NAN': 0,
+    'CUDNN_PROPAGATE_NAN': 1
+}
+
+
 def cudnnCheckStatus(status):
     """
     Raise cuDNN exception
@@ -277,14 +237,11 @@ def cudnnCheckStatus(status):
     """
 
     if status != 0:
-        try:
-            raise cudnnExceptions[status]
-        except KeyError:
-            raise cudnnError
+        raise cudnnError(status)
 
 # Helper functions
 
-_libcudnn.cudnnGetVersion.restype =  ctypes.c_size_t
+_libcudnn.cudnnGetVersion.restype = ctypes.c_size_t
 _libcudnn.cudnnGetVersion.argtypes = []
 def cudnnGetVersion():
     """
