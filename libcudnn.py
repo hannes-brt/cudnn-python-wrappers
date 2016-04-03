@@ -10,7 +10,7 @@ if sys.platform in ('linux2', 'linux'):
     _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.4', 'libcudnn.so.4.0.4']
 elif sys.platform == 'darwin':
     # TODO: check darwin version
-    _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.7.5.dylib']
+    _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.4.dylib']
 elif sys.platform == 'win32':
     # TODO: check win32 version
     _libcudnn_libname_list = ['cudnn70_64.dll']
@@ -1265,7 +1265,7 @@ _libcudnn.cudnnFindConvolutionBackwardDataAlgorithm.argtypes = [ctypes.c_void_p,
                                                                 ctypes.c_void_p, #returnedAlgoCount
                                                                 ctypes.c_void_p] #perfResults
 def cudnnFindConvolutionBackwardDataAlgorithm(handle, wDesc, dyDesc,
-                                              convDesc, dxDesc, 
+                                              convDesc, dxDesc,
                                               requestedAlgoCount):
     perfResultsType = cudnnConvolutionBwdDataAlgoPerf * requestedAlgoCount
     perfResults = perfResultsType()
@@ -1280,7 +1280,7 @@ def cudnnFindConvolutionBackwardDataAlgorithm(handle, wDesc, dyDesc,
                                                                  ctypes.cast(perfResults, ctypes.POINTER(cudnnConvolutionBwdDataAlgoPerf)))
     cudnnCheckStatus(status)
     return perfResults[0:returnedAlgoCount.value]
-  
+
 _libcudnn.cudnnGetConvolutionBackwardDataAlgorithm.restype = int
 _libcudnn.cudnnGetConvolutionBackwardDataAlgorithm.argtypes = [ctypes.c_void_p,
                                                                ctypes.c_void_p,
@@ -1335,10 +1335,10 @@ _libcudnn.cudnnConvolutionBackwardData.argtypes = [ctypes.c_void_p,
                                                    ctypes.c_void_p, ctypes.c_size_t,
                                                    ctypes.c_void_p,
                                                    ctypes.c_void_p, ctypes.c_void_p]
-def cudnnConvolutionBackwardData(handle, 
-                                 alpha, 
-                                 wDesc, w, 
-                                 dyDesc, dy, 
+def cudnnConvolutionBackwardData(handle,
+                                 alpha,
+                                 wDesc, w,
+                                 dyDesc, dy,
                                  convDesc,
                                  algo,
                                  workspace, workSpaceSizeInBytes,
@@ -1387,7 +1387,7 @@ _libcudnn.cudnnFindConvolutionBackwardFilterAlgorithm.argtypes = [ctypes.c_void_
                                                                   ctypes.c_void_p, #returnedAlgoCount
                                                                   ctypes.c_void_p] #perfResults
 def cudnnFindConvolutionBackwardFilterAlgorithm(handle, xDesc, dyDesc,
-                                                convDesc, dwDesc, 
+                                                convDesc, dwDesc,
                                                 requestedAlgoCount):
     perfResultsType = cudnnConvolutionBwdFilterAlgoPerf * requestedAlgoCount
     perfResults = perfResultsType()
@@ -1458,10 +1458,10 @@ _libcudnn.cudnnConvolutionBackwardFilter.argtypes = [ctypes.c_void_p,
                                                      ctypes.c_void_p, ctypes.c_size_t,
                                                      ctypes.c_void_p,
                                                      ctypes.c_void_p, ctypes.c_void_p]
-def cudnnConvolutionBackwardFilter(handle, 
-                                   alpha, 
-                                   xDesc, x, 
-                                   dyDesc, dy, 
+def cudnnConvolutionBackwardFilter(handle,
+                                   alpha,
+                                   xDesc, x,
+                                   dyDesc, dy,
                                    convDesc,
                                    algo,
                                    workspace, workSpaceSizeInBytes,
