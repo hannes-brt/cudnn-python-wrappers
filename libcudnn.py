@@ -9,11 +9,9 @@ import ctypes.util
 if sys.platform in ('linux2', 'linux'):
     _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.4', 'libcudnn.so.4.0.4']
 elif sys.platform == 'darwin':
-    # TODO: check darwin version
     _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.4.dylib']
 elif sys.platform == 'win32':
-    # TODO: check win32 version
-    _libcudnn_libname_list = ['cudnn70_64.dll']
+    _libcudnn_libname_list = ['cudnn64_4.dll']
 else:
     raise RuntimeError('unsupported platform')
 
