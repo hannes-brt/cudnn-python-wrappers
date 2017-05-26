@@ -57,14 +57,14 @@ libcudnn.cudnnSetTensor4dDescriptor(X_desc, tensor_format, data_type,
 
 # Filter descriptor
 filters_desc = libcudnn.cudnnCreateFilterDescriptor()
-libcudnn.cudnnSetFilter4dDescriptor(filters_desc, data_type, filters_out,
+libcudnn.cudnnSetFilter4dDescriptor(filters_desc, data_type, tensor_format, filters_out,
     filters_in, height_filter, width_filter)
 
 # Convolution descriptor
 conv_desc = libcudnn.cudnnCreateConvolutionDescriptor()
 libcudnn.cudnnSetConvolution2dDescriptor(conv_desc, pad_h, pad_w,
     vertical_stride, horizontal_stride, upscalex, upscaley,
-    convolution_mode)
+    convolution_mode, data_type)
 
 # Get output dimensions (first two values are n_input and filters_out)
 _, _, height_output, width_output = libcudnn.cudnnGetConvolution2dForwardOutputDim(

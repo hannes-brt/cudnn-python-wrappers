@@ -24,8 +24,9 @@ these wrappers will be to be used along `PyCUDA
 equally well with other frameworks such as `CUDAMat
 <https://github.com/cudamat/cudamat>`__.
 
-This version of `cudnn-python-wrappers` targets cudnn-6.5-R2-rc2. Please
-use version 1.x of the wrappers for cudnn-6.5-R1.
+This version of `cudnn-python-wrappers` targets cudnn-8.0-v6.0. Please
+use version 1.x of the wrappers for cudnn-6.5-R1. Please use version
+2.1b of the wrappers for cudnn-7.0-v4.0.
 
 Users need to make sure that they pass all arguments as the correct data
 type, that is ``ctypes.c_void_p`` for all handles and array pointers and
@@ -35,6 +36,7 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
 .. code:: python
 
     import pycuda.autoinit
+    import pycuda.driver as drv
     from pycuda import gpuarray
     import libcudnn, ctypes
     import numpy as np
@@ -48,15 +50,26 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     convolution_mode = libcudnn.cudnnConvolutionMode['CUDNN_CROSS_CORRELATION']
     convolution_fwd_pref = libcudnn.cudnnConvolutionFwdPreference['CUDNN_CONVOLUTION_FWD_PREFER_FASTEST']
 
-    n_input = 100
-    filters_in = 10
-    filters_out = 8
-    height_in = 20
-    width_in = 20
-    height_filter = 5
-    width_filter = 5
-    pad_h = 4
-    pad_w = 4
+    start, end = (drv.Event(), drv.Event())
+
+    def start_bench():
+        start.record()
+
+    def end_bench(op):
+        end.record()
+        end.synchronize()
+        msecs  = end.time_since(start)
+        print("%7.3f msecs" % (msecs))
+
+    n_input = 64
+    filters_in = 128
+    filters_out = 128
+    height_in = 112
+    width_in = 112
+    height_filter = 7
+    width_filter = 7
+    pad_h = 3
+    pad_w = 3
     vertical_stride = 1
     horizontal_stride = 1
     upscalex = 1
@@ -79,14 +92,14 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
 
     # Filter descriptor
     filters_desc = libcudnn.cudnnCreateFilterDescriptor()
-    libcudnn.cudnnSetFilter4dDescriptor(filters_desc, data_type, filters_out,
+    libcudnn.cudnnSetFilter4dDescriptor(filters_desc, data_type, tensor_format, filters_out,
         filters_in, height_filter, width_filter)
 
     # Convolution descriptor
     conv_desc = libcudnn.cudnnCreateConvolutionDescriptor()
     libcudnn.cudnnSetConvolution2dDescriptor(conv_desc, pad_h, pad_w,
         vertical_stride, horizontal_stride, upscalex, upscaley,
-        convolution_mode)
+        convolution_mode, data_type)
 
     # Get output dimensions (first two values are n_input and filters_out)
     _, _, height_output, width_output = libcudnn.cudnnGetConvolution2dForwardOutputDim(
@@ -106,9 +119,22 @@ on how to perform forward convolution on a PyCUDA ``GPUArray``:
     # Perform convolution
     algo = libcudnn.cudnnGetConvolutionForwardAlgorithm(cudnn_context, X_desc,
         filters_desc, conv_desc, Y_desc, convolution_fwd_pref, 0)
+
+    print("Cudnn algorithm = %d" % algo.value)
+
+    ws_size = libcudnn.cudnnGetConvolutionForwardWorkspaceSize(cudnn_context, X_desc, filters_desc, conv_desc, Y_desc, algo)
+    ws_ptr  = drv.mem_alloc(ws_size.value) if ws_size.value > 0 else 0
+    ws_data = ctypes.c_void_p(int(ws_ptr))
+
+    start_bench()
+
     libcudnn.cudnnConvolutionForward(cudnn_context, alpha, X_desc, X_data,
-        filters_desc, filters_data, conv_desc, algo, None, 0, beta,
+        filters_desc, filters_data, conv_desc, algo, ws_data, ws_size.value, beta,
         Y_desc, Y_data)
+
+    end_bench("fprop")
+
+    ws_ptr = None
 
     # Clean up
     libcudnn.cudnnDestroyTensorDescriptor(X_desc)

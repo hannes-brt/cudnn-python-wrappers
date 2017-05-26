@@ -7,11 +7,11 @@ import ctypes
 import ctypes.util
 
 if sys.platform in ('linux2', 'linux'):
-    _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.4', 'libcudnn.so.4.0.4']
+    _libcudnn_libname_list = ['libcudnn.so', 'libcudnn.so.6', 'libcudnn.so.6.0.21']
 elif sys.platform == 'darwin':
-    _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.4.dylib']
+    _libcudnn_libname_list = ['libcudnn.dylib', 'libcudnn.6.dylib']
 elif sys.platform == 'win32':
-    _libcudnn_libname_list = ['cudnn64_4.dll']
+    _libcudnn_libname_list = ['cudnn64_6.dll']
 else:
     raise RuntimeError('unsupported platform')
 
@@ -41,22 +41,38 @@ class cudnnError(Exception):
 # cudnnTensorFormat_t is an enumerated type used by
 # cudnnSetTensor4dDescriptor() to create a tensor with a pre-defined layout.
 cudnnTensorFormat = {
-     'CUDNN_TENSOR_NCHW': 0, # This tensor format specifies that the data is laid
-                             # out in the following order: image, features map,
-                             # rows, columns. The strides are implicitly defined
-                             # in such a way that the data are contiguous in
-                             # memory with no padding between images, feature
-                             # maps, rows, and columns; the columns are the
-                             # inner dimension and the images are the outermost
-                             # dimension.
-     'CUDNN_TENSOR_NHWC': 1 # This tensor format specifies that the data is laid
-                            # out in the following order: image, rows, columns,
-                            # features maps. The strides are implicitly defined in
-                            # such a way that the data are contiguous in memory
-                            # with no padding between images, rows, columns,
-                            # and features maps; the feature maps are the
-                            # inner dimension and the images are the outermost
-                            # dimension.
+     'CUDNN_TENSOR_NCHW': 0,       # This tensor format specifies that the data
+                                   # is laid out in the following order: image,
+                                   # features map, rows, columns. The strides
+                                   # are implicitly defined in such a way that
+                                   # the data are contiguous in memory with no
+                                   # padding between images, feature maps,
+                                   # rows, and columns; the columns are the
+                                   # inner dimension and the images are the
+                                   # outermost dimension.
+     'CUDNN_TENSOR_NHWC': 1,       # This tensor format specifies that the data
+                                   # is laid out in the following order: image,
+                                   # rows, columns, features maps. The strides
+                                   # are implicitly defined in such a way that
+                                   # the data are contiguous in memory with no
+                                   # padding between images, rows, columns, and
+                                   # features maps; the feature maps are the
+                                   # inner dimension and the images are the
+                                   # outermost dimension.
+     'CUDNN_TENSOR_NCHW_VECT_C': 2 # This tensor format specifies that the data
+                                   # is laid out in the following order: batch
+                                   # size, feature maps, rows, columns. However,
+                                   # each element of the tensor is a vector of
+                                   # multiple feature maps. The length of the
+                                   # vector is carried by the data type of the
+                                   # tensor. The strides are implicitly defined
+                                   # in such a way that the data are contiguous
+                                   # in memory with no padding between images,
+                                   # feature maps, rows, and columns; the
+                                   # columns are the inner dimension and the
+                                   # images are the outermost dimension. This
+                                   # format is only supported with tensor data
+                                   # type CUDNN_DATA_INT8x4.
 }
 
 # Data type
@@ -67,8 +83,13 @@ cudnnDataType = {
                             # ( float ).
     'CUDNN_DATA_DOUBLE': 1, # The data is 64-bit double-precision floating point
                             # ( double ).
-    'CUDNN_DATA_HALF': 2    # The data is 16-bit half-precision floating point
+    'CUDNN_DATA_HALF': 2,   # The data is 16-bit half-precision floating point
                             # ( half ).
+    'CUDNN_DATA_INT8': 3,   # The data is 8-bit signed integer.
+    'CUDNN_DATA_INT32': 4,  # The data is 32-bit signed integer.
+    'CUDNN_DATA_INT8x4': 5  # The data is 32-bit element composed of 4 8-bit
+                            # signed integer. This data type is only supported
+                            # with tensor format CUDNN_TENSOR_NCHW_VECT_C.
 }
 
 # cudnnAddMode_t is an enumerated type used by cudnnAddTensor() to specify how
@@ -142,7 +163,10 @@ cudnnConvolutionFwdAlgo = {
                         # direct convolution (e.g without implicitly or explicitly doing a
                         # matrix multiplication).
     'CUDNN_CONVOLUTION_FWD_ALGO_FFT': 4,
-    'CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING': 5
+    'CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING': 5,
+    'CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD': 6,
+    'CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED': 7,
+    'CUDNN_CONVOLUTION_FWD_ALGO_COUNT': 8
 }
 
 cudnnConvolutionBwdDataPreference = {
@@ -155,7 +179,10 @@ cudnnConvolutionBwdDataAlgo = {
     'CUDNN_CONVOLUTION_BWD_DATA_ALGO_0': 0,
     'CUDNN_CONVOLUTION_BWD_DATA_ALGO_1': 1,
     'CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT': 2,
-    'CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING': 3
+    'CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING': 3,
+    'CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD': 4,
+    'CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED': 5,
+    'CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT': 6
 }
 
 cudnnConvolutionBwdFilterPreference = {
@@ -168,7 +195,11 @@ cudnnConvolutionBwdFilterAlgo = {
     'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0' : 0,
     'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1' : 1,
     'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT' : 2,
-    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3' : 3
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3' : 3,
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD': 4,
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED': 5,
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING': 6,
+    'CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT': 7
 }
 
 # cudnnSoftmaxAlgorithm_t is used to select an implementation of the softmax
@@ -202,9 +233,12 @@ cudnnPoolingMode = {
     'CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING': 1,   # The values inside the
                                 # pooling window will be averaged and this count
                                 # includes padded values.
-    'CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING': 2    # The values inside the
+    'CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING': 2,    # The values inside the
                                 #  pooling window will be averaged and this count
                                 # does not include padded values.
+    'CUDNN_POOLING_MAX_DETERMINISTIC': 3 # The maximum value inside the pooling
+                                # window is used. The algorithm used is
+                                # deterministic.
 }
 
 # cudnnActivationMode_t is an enumerated type used to select the neuron activation
@@ -212,7 +246,9 @@ cudnnPoolingMode = {
 cudnnActivationMode = {
     'CUDNN_ACTIVATION_SIGMOID': 0,  # sigmoid function
     'CUDNN_ACTIVATION_RELU': 1,     # rectified linear function
-    'CUDNN_ACTIVATION_TANH': 2      # hyperbolic tangent function
+    'CUDNN_ACTIVATION_TANH': 2,     # hyperbolic tangent function
+    'CUDNN_ACTIVATION_CLIPPED_RELU': 3,
+    'CUDNN_ACTIVATION_ELU': 4
 }
 
 # cudnnNanPropagation_t is an enumerated type to specify the propogation of Nan
@@ -542,15 +578,14 @@ def cudnnTransformTensor(handle, alpha, srcDesc, srcData, beta, destDesc, destDa
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnAddTensor.restype = int
-_libcudnn.cudnnAddTensor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
+_libcudnn.cudnnAddTensor.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
                                        ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
                                        ctypes.c_void_p, ctypes.c_void_p]
-def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, srcDestData):
+def cudnnAddTensor(handle, alpha, biasDesc, biasData, beta, srcDestDesc, srcDestData):
     """"
     Tensor Bias addition : srcDest = alpha * bias + beta * srcDestDesc.
 
-    This function adds the scaled values of one tensor to another tensor. The mode parameter
-    can be used to select different ways of performing the scaled addition. The amount
+    This function adds the scaled values of one tensor to another tensor. The amount
     of data described by the biasDesc descriptor must match exactly the amount of data
     needed to perform the addition.
 
@@ -558,8 +593,6 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
     ----------
     handle : cudnnHandle
         Handle to a cuDNN context.
-    mode : cudnnAddMode
-        Addition mode that describes how the addition is performed
     alpha : float
         Scalar factor to be applied to every data element of the bias tensor before it is added
         to the output tensor.
@@ -585,7 +618,7 @@ def cudnnAddTensor(handle, mode, alpha, biasDesc, biasData, beta, srcDestDesc, s
         alphaRef = ctypes.byref(ctypes.c_float(alpha))
         betaRef = ctypes.byref(ctypes.c_float(beta))
 
-    status = _libcudnn.cudnnAddTensor(handle, mode, alphaRef, biasDesc,
+    status = _libcudnn.cudnnAddTensor(handle, alphaRef, biasDesc,
                                         biasData, betaRef,
                                         srcDestDesc, srcDestData)
     cudnnCheckStatus(status)
@@ -674,8 +707,9 @@ def cudnnCreateFilterDescriptor():
 
 _libcudnn.cudnnSetFilter4dDescriptor.restype = int
 _libcudnn.cudnnSetFilter4dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int,
-                                               ctypes.c_int, ctypes.c_int, ctypes.c_int]
-def cudnnSetFilter4dDescriptor(wDesc, dataType, k, c, h, w):
+                                               ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                               ctypes.c_int]
+def cudnnSetFilter4dDescriptor(wDesc, dataType, format, k, c, h, w):
     """"
     Initialize a filter descriptor.
 
@@ -688,6 +722,8 @@ def cudnnSetFilter4dDescriptor(wDesc, dataType, k, c, h, w):
         Handle to a previously created filter descriptor.
     dataType : cudnnDataType
         Data type.
+    format: cudnnTensorFormat
+        Tensor format
     k : int
         Number of output feature maps.
     c : int
@@ -698,12 +734,13 @@ def cudnnSetFilter4dDescriptor(wDesc, dataType, k, c, h, w):
         Width of each filter.
     """
 
-    status = _libcudnn.cudnnSetFilter4dDescriptor(wDesc, dataType, k, c, h, w)
+    status = _libcudnn.cudnnSetFilter4dDescriptor(wDesc, dataType, format, k, c, h, w)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnGetFilter4dDescriptor.restype = int
 _libcudnn.cudnnGetFilter4dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                                               ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+                                               ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                               ctypes.c_void_p]
 def cudnnGetFilter4dDescriptor(wDesc):
     """"
     Get parameters of filter descriptor.
@@ -719,6 +756,8 @@ def cudnnGetFilter4dDescriptor(wDesc):
     -------
     dataType : cudnnDataType
         Data type.
+    format: cudnnTensorFormat
+        Tensor format
     k : int
         Number of output feature maps.
     c : int
@@ -730,17 +769,19 @@ def cudnnGetFilter4dDescriptor(wDesc):
     """
 
     dataType = ctypes.c_int()
+    format = ctypes.c_int()
     k = ctypes.c_int()
     c = ctypes.c_int()
     h = ctypes.c_int()
     w = ctypes.c_int()
 
     status = _libcudnn.cudnnGetFilter4dDescriptor(wDesc, ctypes.byref(dataType),
+                                                ctypes.byref(format),
                                                 ctypes.byref(k), ctypes.byref(c),
                                                 ctypes.byref(h), ctypes.byref(w))
     cudnnCheckStatus(status)
 
-    return dataType.value, k.value, c.value, h.value, w.value
+    return dataType.value, format.value, k.value, c.value, h.value, w.value
 
 _libcudnn.cudnnDestroyFilterDescriptor.restype = int
 _libcudnn.cudnnDestroyFilterDescriptor.argtypes = [ctypes.c_void_p]
@@ -783,8 +824,9 @@ def cudnnCreateConvolutionDescriptor():
 _libcudnn.cudnnSetConvolution2dDescriptor.restype = int
 _libcudnn.cudnnSetConvolution2dDescriptor.argtypes = [ctypes.c_void_p, ctypes.c_int,
                                                     ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                                                    ctypes.c_int, ctypes.c_int]
-def cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v, upscalex, upscaley, mode):
+                                                    ctypes.c_int, ctypes.c_int, ctypes.c_int]
+def cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v, dilation_h, dilation_w, mode,
+                                    computeType):
     """"
     Initialize a convolution descriptor.
 
@@ -808,16 +850,19 @@ def cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v, upscalex, upsc
         Vertical filter stride.
     v : int
         Horizontal filter stride.
-    upscalex : int
-        Upscale the input in x-direction.
-    uscaley : int
-        Upscale the input in y-direction.
+    dilation_h : int
+        Filter height dilation.
+    dilation_w : int
+        Filter width dilation.
     mode : cudnnConvolutionMode
         Select between CUDNN_CONVOLUTION or CUDNN_CROSS_CORRELATION.
+    computeType : cudnnDataType
+        Compute precision
     """
 
     status = _libcudnn.cudnnSetConvolution2dDescriptor(convDesc, pad_h, pad_w, u, v,
-                                                        upscalex, upscaley, mode)
+                                                        dilation_h, dilation_w, mode,
+                                                        computeType)
     cudnnCheckStatus(status)
 
 _libcudnn.cudnnGetConvolution2dDescriptor.restype = int
@@ -845,30 +890,34 @@ def cudnnGetConvolution2dDescriptor(convDesc):
         Vertical filter stride.
     v : int
         Horizontal filter stride.
-    upscalex : int
-        Upscale the input in x-direction.
-    upscaley : int
-        Upscale the input in y-direction.
+    dilation_h : int
+        Filter height dilation.
+    dilation_w : int
+        Filter width dilation.
     mode : cudnnConvolutionMode
         Either CUDNN_CONVOLUTION or CUDNN_CROSS_CORRELATION.
+    computeType : cudnnDataType
+        Compute precision
     """
     pad_h = ctypes.c_int()
     pad_w = ctypes.c_int()
     u = ctypes.c_int()
     v = ctypes.c_int()
-    upscalex = ctypes.c_int()
-    upscaley = ctypes.c_int()
+    dilation_h = ctypes.c_int()
+    dilation_w = ctypes.c_int()
     mode = ctypes.c_int()
+    computeType = ctypes.c_int()
 
     status = _libcudnn.cudnnGetConvolution2dDescriptor(convDesc, ctypes.byref(pad_h),
                                                     ctypes.byref(pad_w), ctypes.byref(u),
-                                                    ctypes.byref(v), ctypes.byref(upscalex),
-                                                    ctypes.byref(upscaley),
-                                                    ctypes.byref(mode))
+                                                    ctypes.byref(v), ctypes.byref(dilation_h),
+                                                    ctypes.byref(dilation_w),
+                                                    ctypes.byref(mode), ctypes.byref(computeType))
 
     cudnnCheckStatus(status)
 
-    return pad_h.value, pad_w.value, u.value, v.value, upscalex.value, upscaley.value, mode.value
+    return (pad_h.value, pad_w.value, u.value, v.value, upscalex.value, upscaley.value, mode.value,
+            computeType.value)
 
 _libcudnn.cudnnGetConvolution2dForwardOutputDim.restype = int
 _libcudnn.cudnnGetConvolution2dForwardOutputDim.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
@@ -920,16 +969,16 @@ _libcudnn.cudnnSetConvolutionNdDescriptor.argtypes = [ctypes.c_void_p, # convDes
                                                       ctypes.c_int, # arrayLength
                                                       ctypes.POINTER(ctypes.c_int), # padA[]
                                                       ctypes.POINTER(ctypes.c_int), # filterStrideA[]
-                                                      ctypes.POINTER(ctypes.c_int), # upscaleA[]
+                                                      ctypes.POINTER(ctypes.c_int), # dilationA[]
                                                       ctypes.c_int, # mode
                                                       ctypes.c_int] # dataType
-def cudnnSetConvolutionNdDescriptor(convDesc, padA, filterStrideA, upscaleA, mode, dataType):
+def cudnnSetConvolutionNdDescriptor(convDesc, padA, filterStrideA, dilationA, mode, dataType):
     dim = len(padA)
     status = _libcudnn.cudnnSetConvolutionNdDescriptor(convDesc,
                                                        dim,
                                                        (ctypes.c_int * dim)(*padA),
                                                        (ctypes.c_int*dim)(*filterStrideA),
-                                                       (ctypes.c_int*dim)(*upscaleA),
+                                                       (ctypes.c_int*dim)(*dilationA),
                                                        mode,
                                                        dataType)
     cudnnCheckStatus(status)
